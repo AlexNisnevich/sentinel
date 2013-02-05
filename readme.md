@@ -5,8 +5,8 @@
 Impress your friends! Intimidate your enemies!
 
 ## Hardware requirements
-- Dream Cheeky brand USB rocket launcher (tested with Thunder model, should also work with Storm)
-- small webcam attached to USB rocket launcher, in /dev/video0 (tested with Logitech C270)
+- **[Dream Cheeky brand USB rocket launcher](http://www.amazon.com/Dream-Cheeky-908-Electronic-Reference/dp/B004SAYO46)** (tested with the Thunder model, should also work with the Storm model)
+- small **webcam** attached to USB rocket launcher, in */dev/video0* on Linux or default video input device on Windows (tested with Logitech C270)
 
 ## Software requirements (Linux)
 - **Python** 2.7, 32-bit
