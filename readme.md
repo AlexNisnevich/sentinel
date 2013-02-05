@@ -2,6 +2,8 @@
 
 **Sentinel** is a USB rocket launcher face-tracking solution for Linux and Windows. It will attempt to track faces and continually point the rocket launcher at the clearest face.
 
+Impress your friends! Intimidate your enemies!
+
 ## Hardware requirements
 - Dream Cheeky brand USB rocket launcher (tested with Thunder model, should also work with Storm)
 - small webcam attached to USB rocket launcher, in /dev/video0 (tested with Logitech C270)
@@ -9,7 +11,7 @@
 ## Software requirements (Linux)
 - **Python** 2.7, 32-bit
 - **libusb** (in Ubuntu/Debian, `apt-get install libusb-dev`)
-- **PyUSB** 1.0 (https://github.com/walac/pyusb`)
+- **PyUSB** 1.0 (https://github.com/walac/pyusb)
 - **NumPy** (in Ubuntu/Debian, `apt-get install python-numpy`)
 - **OpenCV** Python bindings (in Ubuntu/Debian, `apt-get install python-opencv`)
 - **PIL** (in Ubuntu/Debian, `apt-get install python-imaging`)
