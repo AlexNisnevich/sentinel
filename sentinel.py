@@ -69,6 +69,21 @@ class Turret():
    def __init__(self):
       self.launcher = LauncherDriver()
 
+   # roughly centers the turret
+   def center(self):
+      self.launcher.turretLeft()
+      time.sleep(5)
+      self.launcher.turretRight()
+      time.sleep(2)
+      self.launcher.turretStop()
+
+      self.launcher.turretUp()
+      time.sleep(1)
+      self.launcher.turretDown()
+      time.sleep(0.25)
+      self.launcher.turretStop()
+
+   # adjusts the turret's position (units are fairly arbitary but work ok)
    def adjust(self, rightDist, downDist):
       rightSeconds = rightDist * 0.64
       downSeconds = downDist * 0.48
@@ -130,6 +145,8 @@ if __name__ == '__main__':
        sys.exit("Script must be run as root.")
    turret = Turret()
    camera = Camera('/dev/video0')
+
+   turret.center()
 
    while True:
       try:
