@@ -92,12 +92,16 @@ class Turret():
          self.launcher.turretStop()
 
 class Camera():
+   def __init__(self, cam_address):
+      self.cam_address = cam_address
+
+   def dispose(self):
       if os.name == 'posix':
          os.system("killall display")
 
    def capture(self, img_file):
       if os.name == 'posix':
-         os.system("streamer -c /dev/video0 -b 16 -o " + img_file)
+         os.system("streamer -c " + self.cam_address + " -b 16 -o " + img_file)
          # generates 320x240 greyscale jpeg
       else:
          os.system("CommandCam")
@@ -125,7 +129,7 @@ if __name__ == '__main__':
    if os.name == 'posix' and not os.geteuid() == 0:
        sys.exit("Script must be run as root.")
    turret = Turret()
-   camera = Camera()
+   camera = Camera('/dev/video0')
 
    while True:
       try:
