@@ -148,21 +148,25 @@ if __name__ == '__main__':
    parser = OptionParser()
    parser.add_option("-c", "--camera", dest="camera", default='/dev/video0',
                      help="set PATH as camera input (/dev/video0 by default)", metavar="PATH")
+   parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
+                     help="reset the camera and exit")
    opts, args = parser.parse_args()
+   print opts
 
    turret = Turret()
    camera = Camera(opts.camera)
 
    turret.center()
 
-   while True:
-      try:
-         img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
-         camera.capture(img_file)
-         xAdj, yAdj = camera.face_detect(img_file, "haarcascade_frontalface_default.xml", 'capture_faces.jpg')
-         if os.name == 'posix': camera.display('capture_faces.jpg')
-         print xAdj, yAdj
-         turret.adjust(xAdj, yAdj)
-      except KeyboardInterrupt:
-         camera.dispose()
-         break
+   if not reset_only:
+      while True:
+         try:
+            img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
+            camera.capture(img_file)
+            xAdj, yAdj = camera.face_detect(img_file, "haarcascade_frontalface_default.xml", 'capture_faces.jpg')
+            if os.name == 'posix': camera.display('capture_faces.jpg')
+            print xAdj, yAdj
+            turret.adjust(xAdj, yAdj)
+         except KeyboardInterrupt:
+            camera.dispose()
+            break
