@@ -77,6 +77,7 @@ class LauncherDriver():
 class Turret():
    def __init__(self):
       self.launcher = LauncherDriver()
+      self.center()
       self.launcher.ledOn()
 
    # turn off turret properly
@@ -87,7 +88,7 @@ class Turret():
    # roughly centers the turret
    def center(self):
       self.launcher.turretLeft()
-      time.sleep(5)
+      time.sleep(4)
       self.launcher.turretRight()
       time.sleep(2)
       self.launcher.turretStop()
@@ -181,7 +182,6 @@ if __name__ == '__main__':
 
    turret = Turret()
    camera = Camera(opts.camera)
-   turret.center()
 
    while True:
       try:
