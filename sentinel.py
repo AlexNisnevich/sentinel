@@ -127,13 +127,18 @@ class Camera():
       hc = cv.Load(haar_file)
       img = cv.LoadImage(img_file, 0)
       img_w, img_h = Image.open(img_file).size
+
       faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
+      faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
+
       xAdj, yAdj = 0, 0
       for (x,y,w,h),n in faces:
          cv.Rectangle(img, (x,y), (x+w,y+h), 255)
          xAdj = ((x + w/2) - img_w/2) / float(img_w)
          yAdj = ((y + w/2) - img_h/2) / float(img_h)
+
       cv.SaveImage(out_file, img)
+
       return xAdj, yAdj
 
    def display(self, img_file):
