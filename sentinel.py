@@ -34,12 +34,14 @@ import sys
 import time
 import usb.core
 import cv
+import subprocess
 from PIL import Image
 from optparse import OptionParser
 
 class LauncherDriver():
+   # Low level launcher driver commands
    # this code mostly taken from https://github.com/nmilford/stormLauncher
-
+   # with bits from https://github.com/codedance/Retaliation
    def __init__(self):
       self.dev = usb.core.find(idVendor=0x2123, idProduct=0x1010)
       if self.dev is None:
@@ -66,9 +68,21 @@ class LauncherDriver():
    def turretFire(self):
       self.dev.ctrl_transfer(0x21,0x09,0,0,[0x02,0x10,0x00,0x00,0x00,0x00,0x00,0x00])
 
+   def ledOn(self):
+      self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x01, 0x00,0x00,0x00,0x00,0x00,0x00])
+
+   def ledOff(self):
+      self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x00, 0x00,0x00,0x00,0x00,0x00,0x00])
+
 class Turret():
    def __init__(self):
       self.launcher = LauncherDriver()
+      self.launcher.ledOn()
+
+   # turn off turret properly
+   def dispose(self):
+      self.launcher.turretStop()
+      turret.launcher.ledOff()
 
    # roughly centers the turret
    def center(self):
@@ -110,6 +124,7 @@ class Turret():
 class Camera():
    def __init__(self, cam_address):
       self.cam_address = cam_address
+      self.current_image_process = None
 
    def dispose(self):
       if os.name == 'posix':
@@ -120,7 +135,7 @@ class Camera():
          os.system("streamer -c " + self.cam_address + " -b 16 -o " + img_file)
          # generates 320x240 greyscale jpeg
       else:
-         os.system("CommandCam")
+         subprocess.call("CommandCam")
          # generates 640x480 color bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
@@ -142,9 +157,15 @@ class Camera():
       return xAdj, yAdj
 
    def display(self, img_file):
-      os.system("killall display")
-      img = Image.open(img_file)
-      img.show()
+      #display the image with faces indicated by a rectangle
+      if os.name == 'posix':
+         os.system("killall display")
+         img = Image.open(img_file)
+         img.show()
+      else:
+         if not self.current_image_process:
+            ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
+            self.current_image_process = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(),processed_img_file))
 
 if __name__ == '__main__':
    if os.name == 'posix' and not os.geteuid() == 0:
@@ -160,18 +181,18 @@ if __name__ == '__main__':
 
    turret = Turret()
    camera = Camera(opts.camera)
-
    turret.center()
 
-   if not reset_only:
-      while True:
-         try:
-            img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
-            camera.capture(img_file)
-            xAdj, yAdj = camera.face_detect(img_file, "haarcascade_frontalface_default.xml", 'capture_faces.jpg')
-            if os.name == 'posix': camera.display('capture_faces.jpg')
-            print xAdj, yAdj
-            turret.adjust(xAdj, yAdj)
-         except KeyboardInterrupt:
-            camera.dispose()
-            break
+   while True:
+      try:
+         raw_img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
+         processed_img_file = 'capture_faces.jpg'
+         camera.capture(raw_img_file)
+         xAdj, yAdj = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
+         camera.display(processed_img_file)
+         print xAdj, yAdj
+         turret.adjust(xAdj, yAdj)
+      except KeyboardInterrupt:
+         turret.dispose()
+         camera.dispose()
+         break
