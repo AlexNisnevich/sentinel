@@ -125,6 +125,7 @@ class Camera():
    def __init__(self, cam_address):
       self.cam_address = cam_address
       self.current_image_process = None
+      self.FNULL = open(os.devnull, 'w')
 
    def dispose(self):
       if os.name == 'posix':
@@ -135,26 +136,42 @@ class Camera():
          os.system("streamer -c " + self.cam_address + " -b 16 -o " + img_file)
          # generates 320x240 greyscale jpeg
       else:
-         subprocess.call("CommandCam")
+         subprocess.call("CommandCam", stdout=self.FNULL, stderr=subprocess.STDOUT)
          # generates 640x480 color bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
       hc = cv.Load(haar_file)
-      img = cv.LoadImage(img_file, 0)
+      img = cv.LoadImage(img_file)
       img_w, img_h = Image.open(img_file).size
 
       faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
-      faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
+      print faces
+      faces.sort(key=lambda face:face[0][2]*face[0][3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
 
       xAdj, yAdj = 0, 0
-      for (x,y,w,h),n in faces:
-         cv.Rectangle(img, (x,y), (x+w,y+h), 255)
+      if len(faces) > 0:
+         face_detected = 1
+         for (x,y,w,h),n in faces[:-1]:   #draw a rectangle around all faces except last face
+            cv.Rectangle(img, (x,y), (x+w,y+h), (0,0,60))
+
+         (x,y,w,h),n = faces[-1] # last face
+         cv.Line(img, (x,y), (x+w/3,y), (0 , 0, 170), 2)            
+         cv.Line(img, (x+2*w/3,y), (x+w,y), (0 , 0, 170), 2)            
+         cv.Line(img, (x+w,y), (x+w,y+h/3), (0 , 0, 170), 2)          
+         cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), (0 , 0, 170), 2)            
+         cv.Line(img, (x,y), (x,y+h/3), (0 , 0, 170), 2)                   
+         cv.Line(img, (x,y+2*h/3), (x,y+h), (0 , 0, 170), 2)                    
+         cv.Line(img, (x,y+h), (x+w/3,y+h), (0 , 0, 170), 2)                    
+         cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), (0 , 0, 170), 2)    
+
+
          xAdj = ((x + w/2) - img_w/2) / float(img_w)
          yAdj = ((y + w/2) - img_h/2) / float(img_h)
-
+      else:
+         face_detected = 0
       cv.SaveImage(out_file, img)
 
-      return xAdj, yAdj
+      return xAdj, yAdj , face_detected
 
    def display(self, img_file):
       #display the image with faces indicated by a rectangle
@@ -188,10 +205,14 @@ if __name__ == '__main__':
          raw_img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
          processed_img_file = 'capture_faces.jpg'
          camera.capture(raw_img_file)
-         xAdj, yAdj = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
+         xAdj, yAdj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
          camera.display(processed_img_file)
          print xAdj, yAdj
          turret.adjust(xAdj, yAdj)
+         #FIRE!!!
+         
+         #if (face_detected and abs(xAdj)<2 and abs(yAdj)<2):
+         #   turret.launcher.turretFire()
       except KeyboardInterrupt:
          turret.dispose()
          camera.dispose()
