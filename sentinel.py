@@ -209,8 +209,8 @@ if __name__ == '__main__':
          camera.display(processed_img_file)
          print xAdj, yAdj
          turret.adjust(xAdj, yAdj)
+
          #FIRE!!!
-         
          #if (face_detected and abs(xAdj)<2 and abs(yAdj)<2):
          #   turret.launcher.turretFire()
       except KeyboardInterrupt:
