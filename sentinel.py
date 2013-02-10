@@ -155,16 +155,17 @@ class Camera():
          for (x,y,w,h),n in faces[:-1]:   #draw a rectangle around all faces except last face
             cv.Rectangle(img, (x,y), (x+w,y+h), (0,0,60))
 
-         (x,y,w,h),n = faces[-1] # last face
-         cv.Line(img, (x,y), (x+w/3,y), (0 , 0, 170), 2)            
-         cv.Line(img, (x+2*w/3,y), (x+w,y), (0 , 0, 170), 2)            
-         cv.Line(img, (x+w,y), (x+w,y+h/3), (0 , 0, 170), 2)          
-         cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), (0 , 0, 170), 2)            
-         cv.Line(img, (x,y), (x,y+h/3), (0 , 0, 170), 2)                   
-         cv.Line(img, (x,y+2*h/3), (x,y+h), (0 , 0, 170), 2)                    
-         cv.Line(img, (x,y+h), (x+w/3,y+h), (0 , 0, 170), 2)                    
-         cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), (0 , 0, 170), 2)    
+         # get last face
+         (x,y,w,h),n = faces[-1]
 
+         cv.Line(img, (x,y), (x+w/3,y), (0 , 0, 170), 2)
+         cv.Line(img, (x+2*w/3,y), (x+w,y), (0 , 0, 170), 2)
+         cv.Line(img, (x+w,y), (x+w,y+h/3), (0 , 0, 170), 2)
+         cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), (0 , 0, 170), 2)
+         cv.Line(img, (x,y), (x,y+h/3), (0 , 0, 170), 2)
+         cv.Line(img, (x,y+2*h/3), (x,y+h), (0 , 0, 170), 2)
+         cv.Line(img, (x,y+h), (x+w/3,y+h), (0 , 0, 170), 2)
+         cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), (0 , 0, 170), 2)
 
          xAdj = ((x + w/2) - img_w/2) / float(img_w)
          yAdj = ((y + w/2) - img_h/2) / float(img_h)
@@ -172,7 +173,7 @@ class Camera():
          face_detected = 0
       cv.SaveImage(out_file, img)
 
-      return xAdj, yAdj , face_detected
+      return xAdj, yAdj, face_detected
 
    def display(self, img_file):
       #display the image with faces indicated by a rectangle
@@ -200,20 +201,21 @@ if __name__ == '__main__':
    turret = Turret()
    camera = Camera(opts.camera)
 
-   while True:
-      try:
-         raw_img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
-         processed_img_file = 'capture_faces.jpg'
-         camera.capture(raw_img_file)
-         xAdj, yAdj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
-         camera.display(processed_img_file)
-         print xAdj, yAdj
-         turret.adjust(xAdj, yAdj)
+   if not opts.reset_only:
+      while True:
+         try:
+            raw_img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp'
+            processed_img_file = 'capture_faces.jpg'
+            camera.capture(raw_img_file)
+            xAdj, yAdj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
+            camera.display(processed_img_file)
+            print xAdj, yAdj
+            turret.adjust(xAdj, yAdj)
 
-         #FIRE!!!
-         #if (face_detected and abs(xAdj)<2 and abs(yAdj)<2):
-         #   turret.launcher.turretFire()
-      except KeyboardInterrupt:
-         turret.dispose()
-         camera.dispose()
-         break
+            #FIRE!!!
+            #if (face_detected and abs(xAdj)<2 and abs(yAdj)<2):
+            #   turret.launcher.turretFire()
+         except KeyboardInterrupt:
+            turret.dispose()
+            camera.dispose()
+            break
