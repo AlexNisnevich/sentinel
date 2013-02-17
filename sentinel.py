@@ -126,8 +126,11 @@ class Turret():
          self.launcher.turretStop()
 
 class Camera():
-   def __init__(self, cam_address):
-      self.cam_address = cam_address
+   def __init__(self, cam_number):
+      if os.name == 'posix':
+         self.cam_number = cam_number
+      else:
+         self.cam_number = str(int(cam_number) +1) #camera numbers start at 1 in Windows
       self.current_image_process = None
 
    def dispose(self):
@@ -136,11 +139,11 @@ class Camera():
 
    def capture(self, img_file):
       if os.name == 'posix':
-         os.system("streamer -c " + self.cam_address + " -b 16 -o " + img_file)
-         # generates 320x240 jpeg
+         os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
+         # generates 320x240 greyscale jpeg
       else:
-         subprocess.call("CommandCam", stdout=FNULL, stderr=subprocess.STDOUT)
-         # generates 640x480 bitmap
+         subprocess.call("CommandCam /delay 100 /devnum " + self.cam_number, stdout=self.FNULL)
+         # generates 640x480 color bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
       hc = cv.Load(haar_file)
@@ -193,8 +196,8 @@ if __name__ == '__main__':
        sys.exit("Script must be run as root.")
 
    parser = OptionParser()
-   parser.add_option("-c", "--camera", dest="camera", default='/dev/video0',
-                     help="set PATH as camera input (/dev/video0 by default)", metavar="PATH")
+   parser.add_option("-c", "--camera", dest="camera", default='0',
+                     help="specify the camera to use.  By default we will use camera 0.", metavar="PATH")
    parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
                      help="reset the camera and exit")
    parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
