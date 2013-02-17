@@ -146,6 +146,21 @@ class Camera():
          # generates 640x480 color bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
+      def drawReticule(img, x, y, width, height, color, style = "corners"):
+         w=width
+         h=height
+         if style=="corners":
+            cv.Line(img, (x,y), (x+w/3,y), color, 2)
+            cv.Line(img, (x+2*w/3,y), (x+w,y), color, 2)
+            cv.Line(img, (x+w,y), (x+w,y+h/3), color, 2)
+            cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), color, 2)
+            cv.Line(img, (x,y), (x,y+h/3), color, 2)
+            cv.Line(img, (x,y+2*h/3), (x,y+h), color, 2)
+            cv.Line(img, (x,y+h), (x+w/3,y+h), color, 2)
+            cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), color, 2)
+         else:
+            cv.Rectangle(img, (x,y), (x+w,y+h), color)
+
       hc = cv.Load(haar_file)
       img = cv.LoadImage(img_file)
       img_w, img_h = Image.open(img_file).size
@@ -158,19 +173,11 @@ class Camera():
       if len(faces) > 0:
          face_detected = 1
          for (x,y,w,h),n in faces[:-1]:   #draw a rectangle around all faces except last face
-            cv.Rectangle(img, (x,y), (x+w,y+h), (0,0,60))
-
+            drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
          # get last face
          (x,y,w,h),n = faces[-1]
 
-         cv.Line(img, (x,y), (x+w/3,y), (0 , 0, 170), 2)
-         cv.Line(img, (x+2*w/3,y), (x+w,y), (0 , 0, 170), 2)
-         cv.Line(img, (x+w,y), (x+w,y+h/3), (0 , 0, 170), 2)
-         cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), (0 , 0, 170), 2)
-         cv.Line(img, (x,y), (x,y+h/3), (0 , 0, 170), 2)
-         cv.Line(img, (x,y+2*h/3), (x,y+h), (0 , 0, 170), 2)
-         cv.Line(img, (x,y+h), (x+w/3,y+h), (0 , 0, 170), 2)
-         cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), (0 , 0, 170), 2)
+         drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
 
          xAdj = ((x + w/2) - img_w/2) / float(img_w)
          yAdj = ((y + w/2) - img_h/2) / float(img_h)
@@ -179,6 +186,8 @@ class Camera():
       cv.SaveImage(out_file, img)
 
       return xAdj, yAdj, face_detected
+
+
 
    def display(self, img_file):
       #display the image with faces indicated by a rectangle
