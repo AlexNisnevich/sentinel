@@ -33,7 +33,8 @@ import os
 import sys
 import time
 import usb.core
-import cv
+import cv   #legacy OpenCV functions
+import cv2
 import subprocess
 from PIL import Image
 from optparse import OptionParser
@@ -131,18 +132,27 @@ class Camera():
          self.cam_number = cam_number
       else:
          self.cam_number = str(int(cam_number) +1) #camera numbers start at 1 in Windows
-      self.current_image_process = None
+      self.current_image_viewer = None #image viewer not yet launched
+      self.FNULL = open(os.devnull, 'w')
+
+      self.webcam=cv2.VideoCapture(int(cam_number)) #open a channel to our camera
+      if(not self.webcam.isOpened()): #return error if unable to connect to hardware
+         raise ValueError('Error connecting to specified camera')   
 
    def dispose(self):
-      if os.name == 'posix':
-         os.system("killall display")
+      self.webcam.release()
+      #if os.name == 'posix':
+      #   os.system("killall display")
 
-   def capture(self, img_file):
-      if os.name == 'posix':
-         os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
+   def capture(self, img_file): 
+      #just use OpenCV to grab camera frames independent of OS
+      self.current_frame = self.webcam.read()[1]
+      cv2.imwrite(img_file, self.current_frame)
+      #if os.name == 'posix':
+         #os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
          # generates 320x240 greyscale jpeg
-      else:
-         subprocess.call("CommandCam /delay 100 /devnum " + self.cam_number, stdout=self.FNULL)
+      #else:
+         #subprocess.call("CommandCam /delay 100 /devnum " + self.cam_number, stdout=self.FNULL)
          # generates 640x480 color bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
@@ -150,43 +160,47 @@ class Camera():
          w=width
          h=height
          if style=="corners":
-            cv.Line(img, (x,y), (x+w/3,y), color, 2)
-            cv.Line(img, (x+2*w/3,y), (x+w,y), color, 2)
-            cv.Line(img, (x+w,y), (x+w,y+h/3), color, 2)
-            cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), color, 2)
-            cv.Line(img, (x,y), (x,y+h/3), color, 2)
-            cv.Line(img, (x,y+2*h/3), (x,y+h), color, 2)
-            cv.Line(img, (x,y+h), (x+w/3,y+h), color, 2)
-            cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), color, 2)
+            cv2.line(img, (x,y), (x+w/3,y), color, 2)
+            cv2.line(img, (x+2*w/3,y), (x+w,y), color, 2)
+            cv2.line(img, (x+w,y), (x+w,y+h/3), color, 2)
+            cv2.line(img, (x+w,y+2*h/3), (x+w,y+h), color, 2)
+            cv2.line(img, (x,y), (x,y+h/3), color, 2)
+            cv2.line(img, (x,y+2*h/3), (x,y+h), color, 2)
+            cv2.line(img, (x,y+h), (x+w/3,y+h), color, 2)
+            cv2.line(img, (x+2*w/3,y+h), (x+w,y+h), color, 2)
          else:
-            cv.Rectangle(img, (x,y), (x+w,y+h), color)
+            cv2.rectangle(img, (x,y), (x+w,y+h), color)
 
       hc = cv.Load(haar_file)
-      img = cv.LoadImage(img_file)
-      img_w, img_h = Image.open(img_file).size
-
-      faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
-      # print faces
-      faces.sort(key=lambda face:face[0][2]*face[0][3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
+      #img = cv.LoadImage(img_file)
+      img = self.current_frame
+      #img = cv2.imread(img_file)
+      img_w, img_h = (320, 240)
+      #img_w, img_h = Image.open(img_file).size
+      img = cv2.resize(img, (img_w, img_h))
+      #faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
+      face_filter = cv2.CascadeClassifier(haar_file)
+      faces = face_filter.detectMultiScale(img, minNeighbors=4)
+      print faces
+      #if len(faces) > 1:
+      #   faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
 
       xAdj, yAdj = 0, 0
       if len(faces) > 0:
          face_detected = 1
-         for (x,y,w,h),n in faces[:-1]:   #draw a rectangle around all faces except last face
+         for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
             drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
+         
          # get last face
-         (x,y,w,h),n = faces[-1]
-         if n>8 :
-            drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
+         (x,y,w,h) = faces[-1]
+         drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
 
-            xAdj = ((x + w/2) - img_w/2) / float(img_w)
-            yAdj = ((y + w/2) - img_h/2) / float(img_h)
-         else:
-            drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
-            face_detected = 0
+         xAdj =  ((x + w/2) - img_w/2) / float(img_w)
+         yAdj = ((y + h/2) - img_h/2) / float(img_h)
+
       else:
          face_detected = 0
-      cv.SaveImage(out_file, img)
+      cv2.imwrite(out_file, img)
 
       return xAdj, yAdj, face_detected
 
@@ -199,9 +213,9 @@ class Camera():
          img = Image.open(img_file)
          img.show()
       else:
-         if not self.current_image_process:
+         if not self.current_image_viewer:
             ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
-            self.current_image_process = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(),processed_img_file))
+            self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(),processed_img_file))
 
 if __name__ == '__main__':
    if os.name == 'posix' and not os.geteuid() == 0:
