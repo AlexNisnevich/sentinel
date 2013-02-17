@@ -38,6 +38,9 @@ import subprocess
 from PIL import Image
 from optparse import OptionParser
 
+# globals
+FNULL = open(os.devnull, 'w')
+
 class LauncherDriver():
    # Low level launcher driver commands
    # this code mostly taken from https://github.com/nmilford/stormLauncher
@@ -126,7 +129,6 @@ class Camera():
    def __init__(self, cam_address):
       self.cam_address = cam_address
       self.current_image_process = None
-      self.FNULL = open(os.devnull, 'w')
 
    def dispose(self):
       if os.name == 'posix':
@@ -135,10 +137,10 @@ class Camera():
    def capture(self, img_file):
       if os.name == 'posix':
          os.system("streamer -c " + self.cam_address + " -b 16 -o " + img_file)
-         # generates 320x240 greyscale jpeg
+         # generates 320x240 jpeg
       else:
-         subprocess.call("CommandCam", stdout=self.FNULL, stderr=subprocess.STDOUT)
-         # generates 640x480 color bitmap
+         subprocess.call("CommandCam", stdout=FNULL, stderr=subprocess.STDOUT)
+         # generates 640x480 bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
       hc = cv.Load(haar_file)
@@ -146,7 +148,7 @@ class Camera():
       img_w, img_h = Image.open(img_file).size
 
       faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
-      print faces
+      # print faces
       faces.sort(key=lambda face:face[0][2]*face[0][3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
 
       xAdj, yAdj = 0, 0
@@ -215,15 +217,15 @@ if __name__ == '__main__':
             xAdj, yAdj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
             detection_time = time.time()
             camera.display(processed_img_file)
-            print xAdj, yAdj
+            print "adjusting camera: " + str([xAdj, yAdj])
             turret.adjust(xAdj, yAdj)
             movement_time = time.time()
-            print "capture time:" + str(capture_time-start_time)
-            print "detection time:" + str(detection_time-capture_time)
-            print "movement time:" + str(movement_time-detection_time)
+            print "capture time: " + str(capture_time-start_time)
+            print "detection time: " + str(detection_time-capture_time)
+            print "movement time: " + str(movement_time-detection_time)
             #FIRE!!!
-            if (face_detected and abs(xAdj)<.05 and abs(yAdj)<.05):                     
-               turret.launcher.ledOn()  
+            if (face_detected and abs(xAdj)<.05 and abs(yAdj)<.05):
+               turret.launcher.ledOn()
                if opts.armed:    #fire missiles if camera armed
                   turret.launcher.turretFire()
             else:
