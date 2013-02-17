@@ -176,11 +176,14 @@ class Camera():
             drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
          # get last face
          (x,y,w,h),n = faces[-1]
+         if n>8 :
+            drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
 
-         drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
-
-         xAdj = ((x + w/2) - img_w/2) / float(img_w)
-         yAdj = ((y + w/2) - img_h/2) / float(img_h)
+            xAdj = ((x + w/2) - img_w/2) / float(img_w)
+            yAdj = ((y + w/2) - img_h/2) / float(img_h)
+         else:
+            drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
+            face_detected = 0
       else:
          face_detected = 0
       cv.SaveImage(out_file, img)
