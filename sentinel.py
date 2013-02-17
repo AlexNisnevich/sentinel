@@ -199,6 +199,8 @@ if __name__ == '__main__':
                      help="reset the camera and exit")
    parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
                      help="enable the rocket launcher to fire")
+   parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default:False,
+                     help="output timing information")
    opts, args = parser.parse_args()
    print opts
 
@@ -212,17 +214,23 @@ if __name__ == '__main__':
       while True:
          try:
             start_time = time.time()
+
             camera.capture(raw_img_file)
             capture_time = time.time()
+
             xAdj, yAdj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
             detection_time = time.time()
             camera.display(processed_img_file)
+
             print "adjusting camera: " + str([xAdj, yAdj])
             turret.adjust(xAdj, yAdj)
             movement_time = time.time()
-            print "capture time: " + str(capture_time-start_time)
-            print "detection time: " + str(detection_time-capture_time)
-            print "movement time: " + str(movement_time-detection_time)
+
+            if opts.verbose:
+               print "capture time: " + str(capture_time-start_time)
+               print "detection time: " + str(detection_time-capture_time)
+               print "movement time: " + str(movement_time-detection_time)
+
             #FIRE!!!
             if (face_detected and abs(xAdj)<.05 and abs(yAdj)<.05):
                turret.launcher.ledOn()
