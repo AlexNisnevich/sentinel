@@ -4,6 +4,8 @@
 
 Impress your friends! Intimidate your enemies!
 
+![Demonstration of Sentinel](https://raw.github.com/AlexNisnevich/sentinel/master/demonstration.jpg)
+
 ## Hardware requirements
 - **[Dream Cheeky brand USB rocket launcher](http://www.amazon.com/Dream-Cheeky-908-Electronic-Reference/dp/B004SAYO46)** (tested with the Thunder model, should also work with the Storm model)
 - small **webcam** attached to USB rocket launcher (tested with Logitech C270)
