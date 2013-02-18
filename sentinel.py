@@ -125,9 +125,11 @@ class Turret():
          self.launcher.turretUp()
          time.sleep(- downSeconds)
          self.launcher.turretStop()
+      time.sleep(.2)
 
 class Camera():
    def __init__(self, cam_number):
+      self.buffer_size = 2
       if os.name == 'posix':
          self.cam_number = cam_number
       else:
@@ -137,8 +139,16 @@ class Camera():
 
       self.webcam=cv2.VideoCapture(int(cam_number)) #open a channel to our camera
       if(not self.webcam.isOpened()): #return error if unable to connect to hardware
-         raise ValueError('Error connecting to specified camera')   
+         raise ValueError('Error connecting to specified camera')         
 
+      self.clearBuffer(self.buffer_size)
+
+   def clearBuffer(self, bufferSize):
+      #grabs several images from buffer to attempt to clear out old images
+      for i in range(bufferSize):
+         retval, most_recent_frame = self.webcam.retrieve(channel=0)         
+         if (not retval):
+            raise ValueError('no more images in buffer, mate')    
    def dispose(self):
       self.webcam.release()
       #if os.name == 'posix':
@@ -146,8 +156,19 @@ class Camera():
 
    def capture(self, img_file): 
       #just use OpenCV to grab camera frames independent of OS
-      self.current_frame = self.webcam.read()[1]
-      cv2.imwrite(img_file, self.current_frame)
+      retval= self.webcam.grab() 
+      if (not retval):
+         raise ValueError('frame grab failed') 
+      self.clearBuffer(self.buffer_size)
+      retval, most_recent_frame = self.webcam.retrieve(channel=0) 
+
+      #retval, img = self.webcam.read() 
+      if (retval):
+         self.current_frame = most_recent_frame
+      else:
+         raise ValueError('frame capture failed')  
+      # cv2.imwrite(img_file, self.current_frame)
+
       #if os.name == 'posix':
          #os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
          # generates 320x240 greyscale jpeg
@@ -180,10 +201,9 @@ class Camera():
       img = cv2.resize(img, (img_w, img_h))
       #faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
       face_filter = cv2.CascadeClassifier(haar_file)
-      faces = face_filter.detectMultiScale(img, minNeighbors=4)
+      faces = list(face_filter.detectMultiScale(img, minNeighbors=4))
       print faces
-      #if len(faces) > 1:
-      #   faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
+      faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
 
       xAdj, yAdj = 0, 0
       if len(faces) > 0:
