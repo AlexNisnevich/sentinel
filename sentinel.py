@@ -133,15 +133,14 @@ class Camera():
       if os.name == 'posix':
          self.cam_number = cam_number
       else:
-         self.cam_number = str(int(cam_number) +1) #camera numbers start at 1 in Windows
-      self.current_image_viewer = None #image viewer not yet launched
-      self.FNULL = open(os.devnull, 'w')
+         self.cam_number = int(cam_number)+1 # camera numbers start at 1 in Windows
+      self.current_image_viewer = None # image viewer not yet launched
 
-      self.webcam=cv2.VideoCapture(int(cam_number)) #open a channel to our camera
-      if(not self.webcam.isOpened()): #return error if unable to connect to hardware
-         raise ValueError('Error connecting to specified camera')
-
-      self.clearBuffer(self.buffer_size)
+      if os.name != 'posix':
+         self.webcam=cv2.VideoCapture(cam_number) #open a channel to our camera
+         if(not self.webcam.isOpened()): #return error if unable to connect to hardware
+            raise ValueError('Error connecting to specified camera')
+         self.clearBuffer(self.buffer_size)
 
    def clearBuffer(self, bufferSize):
       #grabs several images from buffer to attempt to clear out old images
@@ -149,32 +148,28 @@ class Camera():
          retval, most_recent_frame = self.webcam.retrieve(channel=0)
          if (not retval):
             raise ValueError('no more images in buffer, mate')
+
    def dispose(self):
       self.webcam.release()
-      #if os.name == 'posix':
-      #   os.system("killall display")
+      if os.name == 'posix':
+         os.system("killall display")
 
    def capture(self, img_file):
-      #just use OpenCV to grab camera frames independent of OS
-      retval= self.webcam.grab()
-      if (not retval):
-         raise ValueError('frame grab failed')
-      self.clearBuffer(self.buffer_size)
-      retval, most_recent_frame = self.webcam.retrieve(channel=0)
-
-      #retval, img = self.webcam.read()
-      if (retval):
-         self.current_frame = most_recent_frame
+      if os.name == 'posix':
+         # generate 320x240 jpeg with streaming
+         os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
       else:
-         raise ValueError('frame capture failed')
-      # cv2.imwrite(img_file, self.current_frame)
+         # use OpenCV to grab camera frames and store in self.current_frame
 
-      #if os.name == 'posix':
-         #os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
-         # generates 320x240 greyscale jpeg
-      #else:
-         #subprocess.call("CommandCam /delay 100 /devnum " + self.cam_number, stdout=self.FNULL)
-         # generates 640x480 color bitmap
+         if not self.webcam.grab():
+            raise ValueError('frame grab failed')
+         self.clearBuffer(self.buffer_size)
+
+         retval, most_recent_frame = self.webcam.retrieve(channel=0)
+         if retval:
+            self.current_frame = most_recent_frame
+         else:
+            raise ValueError('frame capture failed')
 
    def face_detect(self, img_file, haar_file, out_file):
       def drawReticule(img, x, y, width, height, color, style = "corners"):
@@ -193,13 +188,14 @@ class Camera():
             cv2.rectangle(img, (x,y), (x+w,y+h), color)
 
       hc = cv.Load(haar_file)
-      #img = cv.LoadImage(img_file)
-      img = self.current_frame
-      #img = cv2.imread(img_file)
+
+      if os.name == 'posix':
+         img = cv2.imread(img_file)
+      else:
+         img = self.current_frame
+
       img_w, img_h = (320, 240)
-      #img_w, img_h = Image.open(img_file).size
       img = cv2.resize(img, (img_w, img_h))
-      #faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
       face_filter = cv2.CascadeClassifier(haar_file)
       faces = list(face_filter.detectMultiScale(img, minNeighbors=4))
       print faces
