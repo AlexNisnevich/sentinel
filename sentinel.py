@@ -76,10 +76,11 @@ class LauncherDriver():
       self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x00, 0x00,0x00,0x00,0x00,0x00,0x00])
 
 class Turret():
-   def __init__(self):
+   def __init__(self, armed):
       self.launcher = LauncherDriver()
       self.center()
       self.launcher.ledOff()
+      self.armed = armed
 
    # turn off turret properly
    def dispose(self):
@@ -128,11 +129,11 @@ class Turret():
       if os.name != 'posix':
          time.sleep(.2)
 
+   # turn on LED if face detected in range, and fire missiles if armed
    def ready_aim_fire(self):
-      # turn on LED if face detected in range, and fire missiles if armed
-      if (face_detected and abs(x_adj)<.05 and abs(y_adj)<.05):
+      if face_detected and abs(x_adj)<.05 and abs(y_adj)<.05:
          turret.launcher.ledOn()
-         if opts.armed:
+         if self.armed:
             turret.launcher.turretFire()
       else:
          turret.launcher.ledOff()
@@ -147,21 +148,21 @@ class Camera():
       self.current_image_viewer = None # image viewer not yet launched
 
       if os.name != 'posix':
-         self.webcam=cv2.VideoCapture(cam_number) #open a channel to our camera
+         self.webcam = cv2.VideoCapture(cam_number) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
          self.clear_buffer()
 
    def dispose(self):
-      self.webcam.release()
       if os.name == 'posix':
          os.system("killall display")
+      else:
+         self.webcam.release()
 
    def clear_buffer(self):
-      #grabs several images from buffer to attempt to clear out old images
+      # grabs several images from buffer to attempt to clear out old images
       for i in range(self.buffer_size):
-         retval, most_recent_frame = self.webcam.retrieve(channel=0)
-         if (not retval):
+         if not self.webcam.retrieve(channel=0):
             raise ValueError('no more images in buffer, mate')
 
    def capture(self, img_file):
@@ -182,9 +183,8 @@ class Camera():
 
    def face_detect(self, img_file, haar_file, out_file):
       def draw_reticule(img, x, y, width, height, color, style = "corners"):
-         w=width
-         h=height
-         if style=="corners":
+         w, h = width, height
+         if style == "corners":
             cv2.line(img, (x,y), (x+w/3,y), color, 2)
             cv2.line(img, (x+2*w/3,y), (x+w,y), color, 2)
             cv2.line(img, (x+w,y), (x+w,y+h/3), color, 2)
@@ -214,11 +214,11 @@ class Camera():
       if len(faces) > 0:
          face_detected = 1
          for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
-            draw_reticule(img,x,y,w,h,(0 , 0, 60),"box")
+            draw_reticule(img, x, y, w, h, (0 , 0, 60), "box")
 
          # get last face
          (x,y,w,h) = faces[-1]
-         draw_reticule(img,x,y,w,h,(0 , 0, 170),"corners")
+         draw_reticule(img, x, y, w, h, (0 , 0, 170), "corners")
 
          x_adj =  ((x + w/2) - img_w/2) / float(img_w)
          y_adj = ((y + h/2) - img_h/2) / float(img_h)
@@ -232,9 +232,10 @@ class Camera():
    def display(self, img_file):
       #display the image with faces indicated by a rectangle
       if os.name == 'posix':
-         os.system("killall display")
+         if self.current_image_viewer:
+            os.system("killall display")
          img = Image.open(img_file)
-         img.show()
+         self.current_image_viewer = img.show()
       else:
          if not self.current_image_viewer:
             ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
@@ -256,7 +257,7 @@ if __name__ == '__main__':
    opts, args = parser.parse_args()
    print opts
 
-   turret = Turret()
+   turret = Turret(opts.armed)
    camera = Camera(opts.camera)
 
    raw_img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp' #specify file names
@@ -274,7 +275,7 @@ if __name__ == '__main__':
             detection_time = time.time()
             camera.display(processed_img_file)
 
-            print "adjusting camera: " + str([x_adj, y_adj])
+            print "adjusting camera: x=" + str(x_adj) + ", y=" + str(y_adj)
             turret.adjust(x_adj, y_adj)
             movement_time = time.time()
 
