@@ -44,8 +44,8 @@ class LauncherDriver():
    def __init__(self):
       self.dev = usb.core.find(idVendor=0x2123, idProduct=0x1010)
       if self.dev is None:
-         raise ValueError('Launcher not found.')
-      if os.name == 'posix' and self.dev.is_kernel_driver_active(0) is True:
+         raise ValueError('Missile launcher not found.')
+      if sys.platform == 'linux2' and self.dev.is_kernel_driver_active(0) is True:
          self.dev.detach_kernel_driver(0)
       self.dev.set_configuration()
 
@@ -68,10 +68,10 @@ class LauncherDriver():
       self.dev.ctrl_transfer(0x21,0x09,0,0,[0x02,0x10,0x00,0x00,0x00,0x00,0x00,0x00])
 
    def ledOn(self):
-      self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x01, 0x00,0x00,0x00,0x00,0x00,0x00])
+      self.dev.ctrl_transfer(0x21,0x09,0,0,[0x03,0x01,0x00,0x00,0x00,0x00,0x00,0x00])
 
    def ledOff(self):
-      self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x00, 0x00,0x00,0x00,0x00,0x00,0x00])
+      self.dev.ctrl_transfer(0x21,0x09,0,0,[0x03,0x00,0x00,0x00,0x00,0x00,0x00,0x00])
 
 class Turret():
    def __init__(self, opts):
@@ -126,7 +126,7 @@ class Turret():
 
       # OpenCV takes pictures VERY quickly, so if we use it (Windows only), we must
       # add an artificial delay to reduce camera wobble and improve clarity
-      if os.name != 'posix':
+      if sys.platform == 'win32':
          time.sleep(.2)
 
    # turn on LED if face detected in range, and fire missiles if armed
@@ -151,7 +151,7 @@ class Camera():
       self.opts = opts
       self.current_image_viewer = None # image viewer not yet launched
 
-      if os.name != 'posix':
+      if sys.platform == 'win32':
          self.webcam = cv2.VideoCapture(int(self.opts.camera)) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
@@ -159,7 +159,7 @@ class Camera():
 
    # turn off camera properly
    def dispose(self):
-      if os.name == 'posix':
+      if sys.platform == 'linux2':
          if self.current_image_viewer:
             subprocess.call(['killall', self.current_image_viewer])
       else:
@@ -173,7 +173,7 @@ class Camera():
 
    # captures a single frame - currently a platform-dependent implementation
    def capture(self):
-      if os.name == 'posix':
+      if sys.platform == 'linux2':
          # on Linux, use streamer to generate a jpeg, then have OpenCV load it into self.current_frame
 
          img_file = 'capture.jpeg'
@@ -243,7 +243,7 @@ class Camera():
 
    def display(self):
       # display the OpenCV-processed images
-      if os.name == 'posix':
+      if sys.platform == 'linux2':
          if self.current_image_viewer:
             subprocess.call(['killall', self.current_image_viewer])
          subprocess.call("display " + self.opts.processed_img_file + ' &', stdout=FNULL, stderr=FNULL, shell=True)
@@ -254,7 +254,7 @@ class Camera():
             self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(), self.opts.processed_img_file))
 
 if __name__ == '__main__':
-   if os.name == 'posix' and not os.geteuid() == 0:
+   if sys.platform == 'linux2' and not os.geteuid() == 0:
        sys.exit("Script must be run as root.")
 
    # command-line options
