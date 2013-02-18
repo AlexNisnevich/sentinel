@@ -139,34 +139,34 @@ class Camera():
 
       self.webcam=cv2.VideoCapture(int(cam_number)) #open a channel to our camera
       if(not self.webcam.isOpened()): #return error if unable to connect to hardware
-         raise ValueError('Error connecting to specified camera')         
+         raise ValueError('Error connecting to specified camera')
 
       self.clearBuffer(self.buffer_size)
 
    def clearBuffer(self, bufferSize):
       #grabs several images from buffer to attempt to clear out old images
       for i in range(bufferSize):
-         retval, most_recent_frame = self.webcam.retrieve(channel=0)         
+         retval, most_recent_frame = self.webcam.retrieve(channel=0)
          if (not retval):
-            raise ValueError('no more images in buffer, mate')    
+            raise ValueError('no more images in buffer, mate')
    def dispose(self):
       self.webcam.release()
       #if os.name == 'posix':
       #   os.system("killall display")
 
-   def capture(self, img_file): 
+   def capture(self, img_file):
       #just use OpenCV to grab camera frames independent of OS
-      retval= self.webcam.grab() 
+      retval= self.webcam.grab()
       if (not retval):
-         raise ValueError('frame grab failed') 
+         raise ValueError('frame grab failed')
       self.clearBuffer(self.buffer_size)
-      retval, most_recent_frame = self.webcam.retrieve(channel=0) 
+      retval, most_recent_frame = self.webcam.retrieve(channel=0)
 
-      #retval, img = self.webcam.read() 
+      #retval, img = self.webcam.read()
       if (retval):
          self.current_frame = most_recent_frame
       else:
-         raise ValueError('frame capture failed')  
+         raise ValueError('frame capture failed')
       # cv2.imwrite(img_file, self.current_frame)
 
       #if os.name == 'posix':
@@ -210,7 +210,7 @@ class Camera():
          face_detected = 1
          for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
             drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
-         
+
          # get last face
          (x,y,w,h) = faces[-1]
          drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
@@ -248,7 +248,7 @@ if __name__ == '__main__':
                      help="reset the camera and exit")
    parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
                      help="enable the rocket launcher to fire")
-   parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default:False,
+   parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                      help="output timing information")
    opts, args = parser.parse_args()
    print opts
