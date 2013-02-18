@@ -28,8 +28,10 @@ import usb.core
 import cv
 import cv2
 import subprocess
-from PIL import Image
 from optparse import OptionParser
+
+# globals
+FNULL = open(os.devnull, 'w')
 
 # http://stackoverflow.com/questions/4984647/accessing-dict-keys-like-an-attribute-in-python
 class AttributeDict(dict):
@@ -136,19 +138,21 @@ class Turret():
             turret.launcher.turretFire()
             time.sleep(3) # roughly how long it takes to fire
             self.missiles_remaining -= 1
-            print self.missiles_remaining
+            print 'Missile fired! Estimated ' + str(self.missiles_remaining) + ' missiles remaining.'
             if self.missiles_remaining < 1:
-               raw_input("Ammunition depleted.  Awaiting order to continue assault [ENTER].")
+               raw_input("Ammunition depleted. Awaiting order to continue assault. [ENTER]")
                self.missiles_remaining = 4
+         else:
+            print 'Turret trained but not firing because of the --disarm directive.'
       else:
          turret.launcher.ledOff()
 
 class Camera():
    def __init__(self, opts):
-      self.opts = opts      
+      self.opts = opts
       self.current_image_viewer = None # image viewer not yet launched
 
-      if os.name != 'posix':    
+      if os.name != 'posix':
          self.webcam = cv2.VideoCapture(int(self.opts.camera)) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
@@ -157,7 +161,8 @@ class Camera():
    # turn off camera properly
    def dispose(self):
       if os.name == 'posix':
-         os.system("killall display")
+         if self.current_image_viewer:
+            subprocess.call(['killall', self.current_image_viewer])
       else:
          self.webcam.release()
 
@@ -173,7 +178,8 @@ class Camera():
          # on Linux, use streamer to generate a jpeg, then have OpenCV load it into self.current_frame
 
          img_file = 'capture.jpeg'
-         os.system("streamer -q -c /dev/video" + self.opts.camera + " -s " + self.opts.image_dimensions + " -b 16 -o " + img_file)
+         subprocess.call("streamer -q -c /dev/video" + self.opts.camera + " -s "
+               + self.opts.image_dimensions + " -b 16 -o " + img_file, stdout=FNULL, shell=True)
          self.current_frame = cv2.imread(img_file)
       else:
          # on Windows, use OpenCV to grab latest camera frame and store in self.current_frame
@@ -186,7 +192,6 @@ class Camera():
          if not retval:
             raise ValueError('frame capture failed')
          self.current_frame = most_recent_frame
-
 
    def face_detect(self):
       def draw_reticule(img, x, y, width, height, color, style = "corners"):
@@ -214,7 +219,8 @@ class Camera():
 
       faces = map(lambda f: f.tolist(), faces) # a bit silly, but works correctly regardless of
                                                # whether faces is an ndarray or empty tuple
-      print 'faces detected: ' + str(faces)
+      if self.opts.verbose:
+         print 'faces detected: ' + str(faces)
       faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
       y_offset = .05
       x_adj, y_adj = 0, 0
@@ -237,12 +243,11 @@ class Camera():
       return face_detected, x_adj, y_adj
 
    def display(self):
-      #display the image with faces indicated by a rectangle
+      # display the OpenCV-processed images
       if os.name == 'posix':
          if self.current_image_viewer:
-            os.system("killall display")
-         img = Image.open(self.opts.processed_img_file)
-         img.show()
+            subprocess.call(['killall', self.current_image_viewer])
+         subprocess.call("display " + self.opts.processed_img_file + ' &', stdout=FNULL, stderr=FNULL, shell=True)
          self.current_image_viewer = 'display'
       else:
          if not self.current_image_viewer:
@@ -295,7 +300,8 @@ if __name__ == '__main__':
                camera.display()
 
             if face_detected:
-               print "adjusting turret: x=" + str(x_adj) + ", y=" + str(y_adj)
+               if opts.verbose:
+                  print "adjusting turret: x=" + str(x_adj) + ", y=" + str(y_adj)
                turret.adjust(x_adj, y_adj)
             movement_time = time.time()
 
