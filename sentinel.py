@@ -39,9 +39,6 @@ import subprocess
 from PIL import Image
 from optparse import OptionParser
 
-# globals
-FNULL = open(os.devnull, 'w')
-
 class LauncherDriver():
    # Low level launcher driver commands
    # this code mostly taken from https://github.com/nmilford/stormLauncher
@@ -125,51 +122,54 @@ class Turret():
          self.launcher.turretUp()
          time.sleep(- downSeconds)
          self.launcher.turretStop()
-      time.sleep(.2)
+
+      # OpenCV takes pictures VERY quickly, so if we use it (Windows only), we must
+      # add an artificial delay to reduce camera wobble and improve clarity
+      if os.name != 'posix':
+         time.sleep(.2)
 
 class Camera():
    def __init__(self, cam_number):
-      self.buffer_size = 2
+      self.buffer_size = 2 # used by clear_buffer when we take pictures with OpenCV
       if os.name == 'posix':
          self.cam_number = cam_number
       else:
-         self.cam_number = int(cam_number)+1 # camera numbers start at 1 in Windows
+         self.cam_number = int(cam_number) + 1 # camera numbers start at 1 in Windows
       self.current_image_viewer = None # image viewer not yet launched
 
       if os.name != 'posix':
          self.webcam=cv2.VideoCapture(cam_number) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
-         self.clearBuffer(self.buffer_size)
-
-   def clearBuffer(self, bufferSize):
-      #grabs several images from buffer to attempt to clear out old images
-      for i in range(bufferSize):
-         retval, most_recent_frame = self.webcam.retrieve(channel=0)
-         if (not retval):
-            raise ValueError('no more images in buffer, mate')
+         self.clear_buffer()
 
    def dispose(self):
       self.webcam.release()
       if os.name == 'posix':
          os.system("killall display")
 
+   def clear_buffer(self):
+      #grabs several images from buffer to attempt to clear out old images
+      for i in range(self.buffer_size):
+         retval, most_recent_frame = self.webcam.retrieve(channel=0)
+         if (not retval):
+            raise ValueError('no more images in buffer, mate')
+
    def capture(self, img_file):
       if os.name == 'posix':
-         # generate 320x240 jpeg with streaming
-         os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
+         # generate 320x240 jpeg with streamer
+         os.system("streamer -q -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
       else:
-         # use OpenCV to grab camera frames and store in self.current_frame
+         # use OpenCV to grab latest camera frame and store in self.current_frame
 
          if not self.webcam.grab():
             raise ValueError('frame grab failed')
-         self.clearBuffer(self.buffer_size)
+         self.clear_buffer()
 
          retval, most_recent_frame = self.webcam.retrieve(channel=0)
-         if retval:
-            self.current_frame = most_recent_frame
-         else:
+         if not retval:
             raise ValueError('frame capture failed')
+         self.current_frame = most_recent_frame
 
    def face_detect(self, img_file, haar_file, out_file):
       def drawReticule(img, x, y, width, height, color, style = "corners"):
@@ -199,9 +199,9 @@ class Camera():
       face_filter = cv2.CascadeClassifier(haar_file)
       faces = list(face_filter.detectMultiScale(img, minNeighbors=4))
       print faces
-      faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
+      faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
 
-      xAdj, yAdj = 0, 0
+      x_adj, y_adj = 0, 0
       if len(faces) > 0:
          face_detected = 1
          for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
@@ -211,16 +211,14 @@ class Camera():
          (x,y,w,h) = faces[-1]
          drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
 
-         xAdj =  ((x + w/2) - img_w/2) / float(img_w)
-         yAdj = ((y + h/2) - img_h/2) / float(img_h)
+         x_adj =  ((x + w/2) - img_w/2) / float(img_w)
+         y_adj = ((y + h/2) - img_h/2) / float(img_h)
 
       else:
          face_detected = 0
       cv2.imwrite(out_file, img)
 
-      return xAdj, yAdj, face_detected
-
-
+      return x_adj, y_adj, face_detected
 
    def display(self, img_file):
       #display the image with faces indicated by a rectangle
@@ -239,7 +237,7 @@ if __name__ == '__main__':
 
    parser = OptionParser()
    parser.add_option("-c", "--camera", dest="camera", default='0',
-                     help="specify the camera to use.  By default we will use camera 0.", metavar="PATH")
+                     help="specify the camera # to use. Default: 0.", metavar="NUM")
    parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
                      help="reset the camera and exit")
    parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
@@ -263,12 +261,12 @@ if __name__ == '__main__':
             camera.capture(raw_img_file)
             capture_time = time.time()
 
-            xAdj, yAdj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
+            x_adj, y_adj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
             detection_time = time.time()
             camera.display(processed_img_file)
 
-            print "adjusting camera: " + str([xAdj, yAdj])
-            turret.adjust(xAdj, yAdj)
+            print "adjusting camera: " + str([x_adj, y_adj])
+            turret.adjust(x_adj, y_adj)
             movement_time = time.time()
 
             if opts.verbose:
@@ -277,7 +275,7 @@ if __name__ == '__main__':
                print "movement time: " + str(movement_time-detection_time)
 
             #FIRE!!!
-            if (face_detected and abs(xAdj)<.05 and abs(yAdj)<.05):
+            if (face_detected and abs(x_adj)<.05 and abs(y_adj)<.05):
                turret.launcher.ledOn()
                if opts.armed:    #fire missiles if camera armed
                   turret.launcher.turretFire()
