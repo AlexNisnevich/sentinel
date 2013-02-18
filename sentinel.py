@@ -10,16 +10,16 @@
 #
 # Options:
 #   -h, --help            show this help message and exit
-#   -a, --arm             enable the rocket launcher to fire
-#   -b SIZE, --buffer=SIZE
-#                         size of camera buffer. Default: 2
+#   -d, --disarm          track faces but do not fire any missiles
+#   -r, --reset           reset the turret position and exit
+#   --nd, --no-display    do not display captured images
 #   -c NUM, --camera=NUM  specify the camera # to use. Default: 0
-#   -d WIDTHxHEIGHT, --dimensions=WIDTHxHEIGHT
+#   -s WIDTHxHEIGHT, --size=WIDTHxHEIGHT
 #                         image dimensions (recommended: 320x240 or 640x480).
 #                         Default: 320x240
-#   --nd, --no-display    do not display captured images
-#   -r, --reset           reset the camera and exit
-#   -v, --verbose         output timing information
+#   -b SIZE, --buffer=SIZE
+#                         size of camera buffer. Default: 2
+#   -v, --verbose         detailed output, including timing information
 
 import os
 import sys
@@ -260,19 +260,19 @@ if __name__ == '__main__':
    # command-line options
    parser = OptionParser()
    parser.add_option("-d", "--disarm", action="store_false", dest="armed", default=True,
-                     help="enable the rocket launcher to fire")
-   parser.add_option("-b", "--buffer", dest="buffer_size", default=2,
-                     help="size of camera buffer. Default: 2", metavar="SIZE")
+                     help="track faces but do not fire any missiles")
+   parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
+                     help="reset the turret position and exit")
+   parser.add_option("--nd", "--no-display", action="store_true", dest="no_display", default=False,
+                     help="do not display captured images")
    parser.add_option("-c", "--camera", dest="camera", default='0',
                      help="specify the camera # to use. Default: 0", metavar="NUM")
    parser.add_option("-s", "--size", dest="image_dimensions", default='320x240',
                      help="image dimensions (recommended: 320x240 or 640x480). Default: 320x240", metavar="WIDTHxHEIGHT")
-   parser.add_option("--nd", "--no-display", action="store_true", dest="no_display", default=False,
-                     help="do not display captured images")
-   parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
-                     help="reset the camera and exit")
+   parser.add_option("-b", "--buffer", dest="buffer_size", default=2,
+                     help="size of camera buffer. Default: 2", metavar="SIZE")
    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
-                     help="output timing information")
+                     help="detailed output, including timing information")
    opts, args = parser.parse_args()
    print opts
 

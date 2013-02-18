@@ -11,6 +11,7 @@ Impress your friends! Intimidate your enemies!
 2.1\.  [Linux](#linux)  
 2.2\.  [Windows](#windows)  
 2.3\.  [Mac OS X](#macosx)  
+3\.  [Usage](#usage)  
 
 <a name="hardwarerequirements"></a>
 
@@ -81,4 +82,25 @@ Install the following dependencies:
 After installing all of the software requirements, you can run Sentinel:
 ```
 > sudo ./sentinel.py
+```
+
+<a name="usage"></a>
+
+## 3\. Usage
+
+```
+Usage: sentinel.py [options]
+
+Options:
+  -h, --help            show this help message and exit
+  -d, --disarm          track faces but do not fire any missiles
+  -r, --reset           reset the turret position and exit
+  --nd, --no-display    do not display captured images
+  -c NUM, --camera=NUM  specify the camera # to use. Default: 0
+  -s WIDTHxHEIGHT, --size=WIDTHxHEIGHT
+                        image dimensions (recommended: 320x240 or 640x480).
+                        Default: 320x240
+  -b SIZE, --buffer=SIZE
+                        size of camera buffer. Default: 2
+  -v, --verbose         detailed output, including timing information
 ```
