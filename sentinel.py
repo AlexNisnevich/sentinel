@@ -101,32 +101,41 @@ class Turret():
       self.launcher.turretStop()
 
    # adjusts the turret's position (units are fairly arbitary but work ok)
-   def adjust(self, rightDist, downDist):
-      rightSeconds = rightDist * 0.64
-      downSeconds = downDist * 0.48
+   def adjust(self, right_dist, down_dist):
+      right_seconds = right_dist * 0.64
+      down_seconds = down_dist * 0.48
 
-      if rightSeconds > 0:
+      if right_seconds > 0:
          self.launcher.turretRight()
-         time.sleep(rightSeconds)
+         time.sleep(right_seconds)
          self.launcher.turretStop()
-      elif rightSeconds < 0:
+      elif right_seconds < 0:
          self.launcher.turretLeft()
-         time.sleep(- rightSeconds)
+         time.sleep(- right_seconds)
          self.launcher.turretStop()
 
-      if downSeconds > 0:
+      if down_seconds > 0:
          self.launcher.turretDown()
-         time.sleep(downSeconds)
+         time.sleep(down_seconds)
          self.launcher.turretStop()
-      elif downSeconds < 0:
+      elif down_seconds < 0:
          self.launcher.turretUp()
-         time.sleep(- downSeconds)
+         time.sleep(- down_seconds)
          self.launcher.turretStop()
 
       # OpenCV takes pictures VERY quickly, so if we use it (Windows only), we must
       # add an artificial delay to reduce camera wobble and improve clarity
       if os.name != 'posix':
          time.sleep(.2)
+
+   def ready_aim_fire(self):
+      # turn on LED if face detected in range, and fire missiles if armed
+      if (face_detected and abs(x_adj)<.05 and abs(y_adj)<.05):
+         turret.launcher.ledOn()
+         if opts.armed:
+            turret.launcher.turretFire()
+      else:
+         turret.launcher.ledOff()
 
 class Camera():
    def __init__(self, cam_number):
@@ -172,7 +181,7 @@ class Camera():
          self.current_frame = most_recent_frame
 
    def face_detect(self, img_file, haar_file, out_file):
-      def drawReticule(img, x, y, width, height, color, style = "corners"):
+      def draw_reticule(img, x, y, width, height, color, style = "corners"):
          w=width
          h=height
          if style=="corners":
@@ -205,11 +214,11 @@ class Camera():
       if len(faces) > 0:
          face_detected = 1
          for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
-            drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
+            draw_reticule(img,x,y,w,h,(0 , 0, 60),"box")
 
          # get last face
          (x,y,w,h) = faces[-1]
-         drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
+         draw_reticule(img,x,y,w,h,(0 , 0, 170),"corners")
 
          x_adj =  ((x + w/2) - img_w/2) / float(img_w)
          y_adj = ((y + h/2) - img_h/2) / float(img_h)
@@ -274,13 +283,7 @@ if __name__ == '__main__':
                print "detection time: " + str(detection_time-capture_time)
                print "movement time: " + str(movement_time-detection_time)
 
-            #FIRE!!!
-            if (face_detected and abs(x_adj)<.05 and abs(y_adj)<.05):
-               turret.launcher.ledOn()
-               if opts.armed:    #fire missiles if camera armed
-                  turret.launcher.turretFire()
-            else:
-               turret.launcher.ledOff()
+            turret.ready_aim_fire()
          except KeyboardInterrupt:
             turret.dispose()
             camera.dispose()
