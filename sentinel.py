@@ -25,6 +25,7 @@ import os
 import sys
 import time
 import usb.core
+import cv
 import cv2
 import subprocess
 from PIL import Image
@@ -75,7 +76,7 @@ class Turret():
    def __init__(self, opts):
       self.opts = opts
       self.launcher = LauncherDriver()
-
+      self.missiles_remaining = 4
       # initial setup
       self.center()
       self.launcher.ledOff()
@@ -133,21 +134,22 @@ class Turret():
          turret.launcher.ledOn()
          if self.opts.armed:
             turret.launcher.turretFire()
+            time.sleep(3) # roughly how long it takes to fire
+            self.missiles_remaining -= 1
+            print self.missiles_remaining
+            if self.missiles_remaining < 1:
+               raw_input("Ammunition depleted.  Awaiting order to continue assault [ENTER].")
+               self.missiles_remaining = 4
       else:
          turret.launcher.ledOff()
 
 class Camera():
    def __init__(self, opts):
-      self.opts = opts
-      # camera numbers start at 0 in Linux but 1 in Windows
-      if os.name == 'posix':
-         self.cam_number = opts.camera
-      else:
-         self.cam_number = int(opts.camera) + 1
+      self.opts = opts      
       self.current_image_viewer = None # image viewer not yet launched
 
-      if os.name != 'posix':
-         self.webcam = cv2.VideoCapture(self.cam_number) #open a channel to our camera
+      if os.name != 'posix':    
+         self.webcam = cv2.VideoCapture(int(self.opts.camera)) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
          self.clear_buffer()
@@ -171,7 +173,7 @@ class Camera():
          # on Linux, use streamer to generate a jpeg, then have OpenCV load it into self.current_frame
 
          img_file = 'capture.jpeg'
-         os.system("streamer -q -c /dev/video" + self.cam_number + " -s " + self.opts.image_dimensions + " -b 16 -o " + img_file)
+         os.system("streamer -q -c /dev/video" + self.opts.camera + " -s " + self.opts.image_dimensions + " -b 16 -o " + img_file)
          self.current_frame = cv2.imread(img_file)
       else:
          # on Windows, use OpenCV to grab latest camera frame and store in self.current_frame
@@ -184,6 +186,7 @@ class Camera():
          if not retval:
             raise ValueError('frame capture failed')
          self.current_frame = most_recent_frame
+
 
    def face_detect(self):
       def draw_reticule(img, x, y, width, height, color, style = "corners"):
@@ -205,11 +208,15 @@ class Camera():
       img = cv2.resize(img, (img_w, img_h))
       face_filter = cv2.CascadeClassifier(self.opts.haar_file)
       faces = face_filter.detectMultiScale(img, minNeighbors=4)
+
+      img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) #convert image to greyscale
+      img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR) #convert back to color so we can put color in our final image
+
       faces = map(lambda f: f.tolist(), faces) # a bit silly, but works correctly regardless of
                                                # whether faces is an ndarray or empty tuple
       print 'faces detected: ' + str(faces)
       faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
-
+      y_offset = .05
       x_adj, y_adj = 0, 0
       if len(faces) > 0:
          face_detected = True
@@ -222,7 +229,7 @@ class Camera():
          (x,y,w,h) = faces[-1]
          draw_reticule(img, x, y, w, h, (0 , 0, 170), "corners")
          x_adj =  ((x + w/2) - img_w/2) / float(img_w)
-         y_adj = ((y + h/2) - img_h/2) / float(img_h)
+         y_adj = ((y + h/2) - img_h/2) / float(img_h) - y_offset
       else:
          face_detected = False
       cv2.imwrite(self.opts.processed_img_file, img)
@@ -248,13 +255,13 @@ if __name__ == '__main__':
 
    # command-line options
    parser = OptionParser()
-   parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
+   parser.add_option("-d", "--disarm", action="store_false", dest="armed", default=True,
                      help="enable the rocket launcher to fire")
    parser.add_option("-b", "--buffer", dest="buffer_size", default=2,
                      help="size of camera buffer. Default: 2", metavar="SIZE")
    parser.add_option("-c", "--camera", dest="camera", default='0',
                      help="specify the camera # to use. Default: 0", metavar="NUM")
-   parser.add_option("-d", "--dimensions", dest="image_dimensions", default='320x240',
+   parser.add_option("-s", "--size", dest="image_dimensions", default='320x240',
                      help="image dimensions (recommended: 320x240 or 640x480). Default: 320x240", metavar="WIDTHxHEIGHT")
    parser.add_option("--nd", "--no-display", action="store_true", dest="no_display", default=False,
                      help="do not display captured images")
