@@ -39,6 +39,11 @@ import subprocess
 from PIL import Image
 from optparse import OptionParser
 
+# http://stackoverflow.com/questions/4984647/accessing-dict-keys-like-an-attribute-in-python
+class AttributeDict(dict):
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+
 class LauncherDriver():
    # Low level launcher driver commands
    # this code mostly taken from https://github.com/nmilford/stormLauncher
@@ -76,11 +81,13 @@ class LauncherDriver():
       self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x00, 0x00,0x00,0x00,0x00,0x00,0x00])
 
 class Turret():
-   def __init__(self, armed):
+   def __init__(self, opts):
+      self.opts = opts
       self.launcher = LauncherDriver()
+
+      # initial setup
       self.center()
       self.launcher.ledOff()
-      self.armed = armed
 
    # turn off turret properly
    def dispose(self):
@@ -133,44 +140,50 @@ class Turret():
    def ready_aim_fire(self):
       if face_detected and abs(x_adj)<.05 and abs(y_adj)<.05:
          turret.launcher.ledOn()
-         if self.armed:
+         if self.opts.armed:
             turret.launcher.turretFire()
       else:
          turret.launcher.ledOff()
 
 class Camera():
-   def __init__(self, cam_number):
-      self.buffer_size = 2 # used by clear_buffer when we take pictures with OpenCV
+   def __init__(self, opts):
+      self.opts = opts
+      # camera numbers start at 0 in Linux but 1 in Windows
       if os.name == 'posix':
-         self.cam_number = cam_number
+         self.cam_number = opts.camera
       else:
-         self.cam_number = int(cam_number) + 1 # camera numbers start at 1 in Windows
+         self.cam_number = int(opts.camera) + 1
       self.current_image_viewer = None # image viewer not yet launched
 
       if os.name != 'posix':
-         self.webcam = cv2.VideoCapture(cam_number) #open a channel to our camera
+         self.webcam = cv2.VideoCapture(self.cam_number) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
          self.clear_buffer()
 
+   # turn off camera properly
    def dispose(self):
       if os.name == 'posix':
          os.system("killall display")
       else:
          self.webcam.release()
 
+   # grabs several images from buffer to attempt to clear out old images
    def clear_buffer(self):
-      # grabs several images from buffer to attempt to clear out old images
-      for i in range(self.buffer_size):
+      for i in range(self.opts.buffer_size):
          if not self.webcam.retrieve(channel=0):
             raise ValueError('no more images in buffer, mate')
 
-   def capture(self, img_file):
+   # captures a single frame - currently a platform-dependent implementation
+   def capture(self):
       if os.name == 'posix':
-         # generate 320x240 jpeg with streamer
-         os.system("streamer -q -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
+         # on Linux, use streamer to generate a jpeg, then have OpenCV load it into self.current_frame
+
+         img_file = 'capture.jpeg'
+         os.system("streamer -q -c /dev/video" + self.cam_number + " -s " + self.opts.image_dimensions + " -b 16 -o " + img_file)
+         self.current_frame = cv2.imread(img_file)
       else:
-         # use OpenCV to grab latest camera frame and store in self.current_frame
+         # on Windows, use OpenCV to grab latest camera frame and store in self.current_frame
 
          if not self.webcam.grab():
             raise ValueError('frame grab failed')
@@ -181,7 +194,7 @@ class Camera():
             raise ValueError('frame capture failed')
          self.current_frame = most_recent_frame
 
-   def face_detect(self, img_file, haar_file, out_file):
+   def face_detect(self):
       def draw_reticule(img, x, y, width, height, color, style = "corners"):
          w, h = width, height
          if style == "corners":
@@ -196,93 +209,102 @@ class Camera():
          else:
             cv2.rectangle(img, (x,y), (x+w,y+h), color)
 
-      hc = cv.Load(haar_file)
-
-      if os.name == 'posix':
-         img = cv2.imread(img_file)
-      else:
-         img = self.current_frame
-
-      img_w, img_h = (320, 240)
+      img = self.current_frame
+      img_w, img_h = map(int, self.opts.image_dimensions.split('x'))
       img = cv2.resize(img, (img_w, img_h))
-      face_filter = cv2.CascadeClassifier(haar_file)
-      faces = list(face_filter.detectMultiScale(img, minNeighbors=4))
-      print faces
+      face_filter = cv2.CascadeClassifier(self.opts.haar_file)
+      faces = face_filter.detectMultiScale(img, minNeighbors=4)
+      faces = map(lambda f: f.tolist(), faces) # a bit silly, but works correctly regardless of
+                                               # whether faces is an ndarray or empty tuple
+      print 'faces detected: ' + str(faces)
       faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
 
       x_adj, y_adj = 0, 0
       if len(faces) > 0:
-         face_detected = 1
-         for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
+         face_detected = True
+
+         # draw a rectangle around all faces except last face
+         for (x,y,w,h) in faces[:-1]:
             draw_reticule(img, x, y, w, h, (0 , 0, 60), "box")
 
-         # get last face
+         # get last face, draw target, and calculate distance from center
          (x,y,w,h) = faces[-1]
          draw_reticule(img, x, y, w, h, (0 , 0, 170), "corners")
-
          x_adj =  ((x + w/2) - img_w/2) / float(img_w)
          y_adj = ((y + h/2) - img_h/2) / float(img_h)
-
       else:
-         face_detected = 0
-      cv2.imwrite(out_file, img)
+         face_detected = False
+      cv2.imwrite(self.opts.processed_img_file, img)
 
-      return x_adj, y_adj, face_detected
+      return face_detected, x_adj, y_adj
 
-   def display(self, img_file):
+   def display(self):
       #display the image with faces indicated by a rectangle
       if os.name == 'posix':
          if self.current_image_viewer:
             os.system("killall display")
-         img = Image.open(img_file)
-         self.current_image_viewer = img.show()
+         img = Image.open(self.opts.processed_img_file)
+         img.show()
+         self.current_image_viewer = 'display'
       else:
          if not self.current_image_viewer:
             ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
-            self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(),processed_img_file))
+            self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(), self.opts.processed_img_file))
 
 if __name__ == '__main__':
    if os.name == 'posix' and not os.geteuid() == 0:
        sys.exit("Script must be run as root.")
 
+   # command-line options
    parser = OptionParser()
-   parser.add_option("-c", "--camera", dest="camera", default='0',
-                     help="specify the camera # to use. Default: 0.", metavar="NUM")
-   parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
-                     help="reset the camera and exit")
    parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
                      help="enable the rocket launcher to fire")
+   parser.add_option("-b", "--buffer", dest="buffer_size", default=2,
+                     help="size of camera buffer. Default: 2", metavar="SIZE")
+   parser.add_option("-c", "--camera", dest="camera", default='0',
+                     help="specify the camera # to use. Default: 0", metavar="NUM")
+   parser.add_option("-d", "--dimensions", dest="image_dimensions", default='320x240',
+                     help="image dimensions (recommended: 320x240 or 640x480). Default: 320x240", metavar="WIDTHxHEIGHT")
+   parser.add_option("--nd", "--no-display", action="store_true", dest="no_display", default=False,
+                     help="do not display captured images")
+   parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
+                     help="reset the camera and exit")
    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                      help="output timing information")
    opts, args = parser.parse_args()
    print opts
 
-   turret = Turret(opts.armed)
-   camera = Camera(opts.camera)
+   # additional options
+   opts = AttributeDict(vars(opts)) # converting opts to an AttributeDict so we can add extra options
+   opts.haar_file = 'haarcascade_frontalface_default.xml'
+   opts.processed_img_file = 'capture_faces.jpg'
 
-   raw_img_file = 'capture.jpeg' if os.name == 'posix' else 'image.bmp' #specify file names
-   processed_img_file = 'capture_faces.jpg'
+   turret = Turret(opts)
+   camera = Camera(opts)
 
    if not opts.reset_only:
       while True:
          try:
             start_time = time.time()
 
-            camera.capture(raw_img_file)
+            camera.capture()
             capture_time = time.time()
 
-            x_adj, y_adj, face_detected = camera.face_detect(raw_img_file, "haarcascade_frontalface_default.xml", processed_img_file)
+            face_detected, x_adj, y_adj = camera.face_detect()
             detection_time = time.time()
-            camera.display(processed_img_file)
 
-            print "adjusting camera: x=" + str(x_adj) + ", y=" + str(y_adj)
-            turret.adjust(x_adj, y_adj)
+            if not opts.no_display:
+               camera.display()
+
+            if face_detected:
+               print "adjusting turret: x=" + str(x_adj) + ", y=" + str(y_adj)
+               turret.adjust(x_adj, y_adj)
             movement_time = time.time()
 
             if opts.verbose:
-               print "capture time: " + str(capture_time-start_time)
-               print "detection time: " + str(detection_time-capture_time)
-               print "movement time: " + str(movement_time-detection_time)
+               print "capture time: " + str(capture_time - start_time)
+               print "detection time: " + str(detection_time - capture_time)
+               print "movement time: " + str(movement_time - detection_time)
 
             turret.ready_aim_fire()
          except KeyboardInterrupt:
