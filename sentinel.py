@@ -33,7 +33,6 @@ import os
 import sys
 import time
 import usb.core
-import cv   #legacy OpenCV functions
 import cv2
 import subprocess
 from PIL import Image

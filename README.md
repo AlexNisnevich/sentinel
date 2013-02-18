@@ -13,7 +13,7 @@ Impress your friends! Intimidate your enemies!
 - **libusb** (in Ubuntu/Debian, `apt-get install libusb-dev`)
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
 - **OpenCV** Python bindings
-	- In Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh))
+	- In Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh)
 	- In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
 - **PIL** (in Ubuntu/Debian, `apt-get install python-imaging`)
 - **streamer** (in Ubuntu/Debian, `apt-get install streamer`)
@@ -30,7 +30,7 @@ After installing all of the software requirements, you can run Sentinel:
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
 - **NumPy** (http://www.lfd.uci.edu/~gohlke/pythonlibs/#numpy)
 - **OpenCV** Python bindings (http://sourceforge.net/projects/opencvlibrary/files/opencv-win/2.3.1/OpenCV-2.3.1-win-superpack.exe/download)
-   - After installing, copy the contents of *[opencv path]\build\python\2.7* (it should contain *cv.py* and *cv2.pyd*) to *c:\Python27\Lib*
+   - After installing, copy the contents of *[opencv path]\build\python\2.7* (it should contain *cv.py* and *cv2.pyd*) to *C:\Python27\Lib\site-packages*
 - **PIL** (http://www.lfd.uci.edu/~gohlke/pythonlibs/#pil)
 
 After installing all of the software requirements, you can run Sentinel from Python IDLE or from the command line:
