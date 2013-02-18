@@ -10,11 +10,12 @@ Impress your friends! Intimidate your enemies!
 
 ## Software requirements (Linux)
 - **Python** 2.7, 32-bit
-- **libusb** USB support for use with PyUSB (in Ubuntu/Debian, `apt-get install libusb-dev`)
-- **PyUSB** 1.0 Python USB libraries  (https://github.com/walac/pyusb)
-- **NumPy** Math library for use with OpenCV (in Ubuntu/Debian, `apt-get install python-numpy`)
-- **OpenCV** Facial Recognition Python bindings (in Ubuntu/Debian, `apt-get install python-opencv`)
-- **PIL** Python Image Library (in Ubuntu/Debian, `apt-get install python-imaging`)
+- **libusb** (in Ubuntu/Debian, `apt-get install libusb-dev`)
+- **PyUSB** 1.0 (https://github.com/walac/pyusb)
+- **OpenCV** Python bindings
+	- In Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh))
+	- In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
+- **PIL** (in Ubuntu/Debian, `apt-get install python-imaging`)
 - **streamer** (in Ubuntu/Debian, `apt-get install streamer`)
 
 After installing all of the software requirements, you can run Sentinel:

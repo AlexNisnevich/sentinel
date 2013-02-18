@@ -13,7 +13,7 @@
 # - libusb (in Ubuntu/Debian, apt-get install libusb-dev)
 # - PyUSB 1.0 (https://github.com/walac/pyusb)
 # - NumPy (in Ubuntu/Debian, apt-get install python-numpy)
-# - OpenCV Python bindings (in Ubuntu/Debian, apt-get install python-opencv)
+# - OpenCV Python bindings (ihttp://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/)
 # - PIL (in Ubuntu/Debian, apt-get install python-imaging)
 # - streamer (in Ubuntu/Debian, apt-get install streamer)
 #
