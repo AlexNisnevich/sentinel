@@ -25,7 +25,6 @@ import os
 import sys
 import time
 import usb.core
-import cv
 import cv2
 import subprocess
 from optparse import OptionParser
