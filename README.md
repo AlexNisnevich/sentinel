@@ -10,11 +10,11 @@ Impress your friends! Intimidate your enemies!
 
 ## Software requirements (Linux)
 - **Python** 2.7, 32-bit
-- **libusb** (in Ubuntu/Debian, `apt-get install libusb-dev`)
-- **PyUSB** 1.0 (https://github.com/walac/pyusb)
-- **NumPy** (in Ubuntu/Debian, `apt-get install python-numpy`)
-- **OpenCV** Python bindings (in Ubuntu/Debian, `apt-get install python-opencv`)
-- **PIL** (in Ubuntu/Debian, `apt-get install python-imaging`)
+- **libusb** USB support for use with PyUSB (in Ubuntu/Debian, `apt-get install libusb-dev`)
+- **PyUSB** 1.0 Python USB libraries  (https://github.com/walac/pyusb)
+- **NumPy** Math library for use with OpenCV (in Ubuntu/Debian, `apt-get install python-numpy`)
+- **OpenCV** Facial Recognition Python bindings (in Ubuntu/Debian, `apt-get install python-opencv`)
+- **PIL** Python Image Library (in Ubuntu/Debian, `apt-get install python-imaging`)
 - **streamer** (in Ubuntu/Debian, `apt-get install streamer`)
 
 After installing all of the software requirements, you can run Sentinel:

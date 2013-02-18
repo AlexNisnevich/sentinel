@@ -33,7 +33,8 @@ import os
 import sys
 import time
 import usb.core
-import cv
+import cv   #legacy OpenCV functions
+import cv2
 import subprocess
 from PIL import Image
 from optparse import OptionParser
@@ -124,58 +125,106 @@ class Turret():
          self.launcher.turretUp()
          time.sleep(- downSeconds)
          self.launcher.turretStop()
+      time.sleep(.2)
 
 class Camera():
-   def __init__(self, cam_address):
-      self.cam_address = cam_address
-      self.current_image_process = None
-
-   def dispose(self):
+   def __init__(self, cam_number):
+      self.buffer_size = 2
       if os.name == 'posix':
-         os.system("killall display")
-
-   def capture(self, img_file):
-      if os.name == 'posix':
-         os.system("streamer -c " + self.cam_address + " -b 16 -o " + img_file)
-         # generates 320x240 jpeg
+         self.cam_number = cam_number
       else:
-         subprocess.call("CommandCam", stdout=FNULL, stderr=subprocess.STDOUT)
-         # generates 640x480 bitmap
+         self.cam_number = str(int(cam_number) +1) #camera numbers start at 1 in Windows
+      self.current_image_viewer = None #image viewer not yet launched
+      self.FNULL = open(os.devnull, 'w')
+
+      self.webcam=cv2.VideoCapture(int(cam_number)) #open a channel to our camera
+      if(not self.webcam.isOpened()): #return error if unable to connect to hardware
+         raise ValueError('Error connecting to specified camera')         
+
+      self.clearBuffer(self.buffer_size)
+
+   def clearBuffer(self, bufferSize):
+      #grabs several images from buffer to attempt to clear out old images
+      for i in range(bufferSize):
+         retval, most_recent_frame = self.webcam.retrieve(channel=0)         
+         if (not retval):
+            raise ValueError('no more images in buffer, mate')    
+   def dispose(self):
+      self.webcam.release()
+      #if os.name == 'posix':
+      #   os.system("killall display")
+
+   def capture(self, img_file): 
+      #just use OpenCV to grab camera frames independent of OS
+      retval= self.webcam.grab() 
+      if (not retval):
+         raise ValueError('frame grab failed') 
+      self.clearBuffer(self.buffer_size)
+      retval, most_recent_frame = self.webcam.retrieve(channel=0) 
+
+      #retval, img = self.webcam.read() 
+      if (retval):
+         self.current_frame = most_recent_frame
+      else:
+         raise ValueError('frame capture failed')  
+      # cv2.imwrite(img_file, self.current_frame)
+
+      #if os.name == 'posix':
+         #os.system("streamer -c /dev/video" + self.cam_number + " -b 16 -o " + img_file)
+         # generates 320x240 greyscale jpeg
+      #else:
+         #subprocess.call("CommandCam /delay 100 /devnum " + self.cam_number, stdout=self.FNULL)
+         # generates 640x480 color bitmap
 
    def face_detect(self, img_file, haar_file, out_file):
-      hc = cv.Load(haar_file)
-      img = cv.LoadImage(img_file)
-      img_w, img_h = Image.open(img_file).size
+      def drawReticule(img, x, y, width, height, color, style = "corners"):
+         w=width
+         h=height
+         if style=="corners":
+            cv2.line(img, (x,y), (x+w/3,y), color, 2)
+            cv2.line(img, (x+2*w/3,y), (x+w,y), color, 2)
+            cv2.line(img, (x+w,y), (x+w,y+h/3), color, 2)
+            cv2.line(img, (x+w,y+2*h/3), (x+w,y+h), color, 2)
+            cv2.line(img, (x,y), (x,y+h/3), color, 2)
+            cv2.line(img, (x,y+2*h/3), (x,y+h), color, 2)
+            cv2.line(img, (x,y+h), (x+w/3,y+h), color, 2)
+            cv2.line(img, (x+2*w/3,y+h), (x+w,y+h), color, 2)
+         else:
+            cv2.rectangle(img, (x,y), (x+w,y+h), color)
 
-      faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
-      # print faces
-      faces.sort(key=lambda face:face[0][2]*face[0][3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
+      hc = cv.Load(haar_file)
+      #img = cv.LoadImage(img_file)
+      img = self.current_frame
+      #img = cv2.imread(img_file)
+      img_w, img_h = (320, 240)
+      #img_w, img_h = Image.open(img_file).size
+      img = cv2.resize(img, (img_w, img_h))
+      #faces = cv.HaarDetectObjects(img, hc, cv.CreateMemStorage())
+      face_filter = cv2.CascadeClassifier(haar_file)
+      faces = list(face_filter.detectMultiScale(img, minNeighbors=4))
+      print faces
+      faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing xAdj, yAdj)
 
       xAdj, yAdj = 0, 0
       if len(faces) > 0:
          face_detected = 1
-         for (x,y,w,h),n in faces[:-1]:   #draw a rectangle around all faces except last face
-            cv.Rectangle(img, (x,y), (x+w,y+h), (0,0,60))
-
+         for (x,y,w,h) in faces[:-1]:   #draw a rectangle around all faces except last face
+            drawReticule(img,x,y,w,h,(0 , 0, 60),"box")
+         
          # get last face
-         (x,y,w,h),n = faces[-1]
+         (x,y,w,h) = faces[-1]
+         drawReticule(img,x,y,w,h,(0 , 0, 170),"corners")
 
-         cv.Line(img, (x,y), (x+w/3,y), (0 , 0, 170), 2)
-         cv.Line(img, (x+2*w/3,y), (x+w,y), (0 , 0, 170), 2)
-         cv.Line(img, (x+w,y), (x+w,y+h/3), (0 , 0, 170), 2)
-         cv.Line(img, (x+w,y+2*h/3), (x+w,y+h), (0 , 0, 170), 2)
-         cv.Line(img, (x,y), (x,y+h/3), (0 , 0, 170), 2)
-         cv.Line(img, (x,y+2*h/3), (x,y+h), (0 , 0, 170), 2)
-         cv.Line(img, (x,y+h), (x+w/3,y+h), (0 , 0, 170), 2)
-         cv.Line(img, (x+2*w/3,y+h), (x+w,y+h), (0 , 0, 170), 2)
+         xAdj =  ((x + w/2) - img_w/2) / float(img_w)
+         yAdj = ((y + h/2) - img_h/2) / float(img_h)
 
-         xAdj = ((x + w/2) - img_w/2) / float(img_w)
-         yAdj = ((y + w/2) - img_h/2) / float(img_h)
       else:
          face_detected = 0
-      cv.SaveImage(out_file, img)
+      cv2.imwrite(out_file, img)
 
       return xAdj, yAdj, face_detected
+
+
 
    def display(self, img_file):
       #display the image with faces indicated by a rectangle
@@ -184,17 +233,17 @@ class Camera():
          img = Image.open(img_file)
          img.show()
       else:
-         if not self.current_image_process:
+         if not self.current_image_viewer:
             ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
-            self.current_image_process = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(),processed_img_file))
+            self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(),processed_img_file))
 
 if __name__ == '__main__':
    if os.name == 'posix' and not os.geteuid() == 0:
        sys.exit("Script must be run as root.")
 
    parser = OptionParser()
-   parser.add_option("-c", "--camera", dest="camera", default='/dev/video0',
-                     help="set PATH as camera input (/dev/video0 by default)", metavar="PATH")
+   parser.add_option("-c", "--camera", dest="camera", default='0',
+                     help="specify the camera to use.  By default we will use camera 0.", metavar="PATH")
    parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
                      help="reset the camera and exit")
    parser.add_option("-a", "--arm", action="store_true", dest="armed", default=False,
