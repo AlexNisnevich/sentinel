@@ -6,13 +6,13 @@ Impress your friends! Intimidate your enemies!
 
 ## Hardware requirements
 - **[Dream Cheeky brand USB rocket launcher](http://www.amazon.com/Dream-Cheeky-908-Electronic-Reference/dp/B004SAYO46)** (tested with the Thunder model, should also work with the Storm model)
-- small **webcam** attached to USB rocket launcher, in */dev/video0* on Linux or default video input device on Windows (tested with Logitech C270)
+- small **webcam** attached to USB rocket launcher (tested with Logitech C270)
 
 ## Software requirements (Linux)
 - **Python** 2.7, 32-bit
 - **libusb** (in Ubuntu/Debian, `apt-get install libusb-dev`)
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
-- **OpenCV** Python bindings
+- **OpenCV** 2.4 Python bindings
 	- In Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh)
 	- In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
 - **PIL** (in Ubuntu/Debian, `apt-get install python-imaging`)
@@ -37,6 +37,3 @@ After installing all of the software requirements, you can run Sentinel from Pyt
 ```
 > C:\Python27\python sentinel.py
 ```
-
-## Acknowledgements
-For Windows photo capture, Sentinel uses the CommandCam utility by Ted Burke, the source code for which can be found at https://github.com/tedburke/CommandCam
