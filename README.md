@@ -71,16 +71,14 @@ After installing all of the software requirements, you can run Sentinel from Pyt
 
 ### 2.3\. Mac OS X
 
-If you have Homebrew, you can simply run the included installation script:
+If you have [Homebrew](http://mxcl.github.com/homebrew/), you can simply run the included installation script:
 ```
 > sudo install/mac_osx.sh
 ```
 
 Otherwise (or if the script doesn't work for you), install the following dependencies:
 
-Install the following dependencies:
-
-- **Python** 2.7, 32-bit (should be pre-installed)
+- **Python** 2.7, 32-bit (if not pre-installed)
 - **libusb** 1.0 (`sudo port install libusb` or `sudo brew install libusb-devel +universal`)
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
 - **NumPy** (`pip install numpy`)

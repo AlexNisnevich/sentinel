@@ -14,7 +14,7 @@
 apt-get install python-opencv libusb-dev streamer imagemagick
 
 git clone git://github.com/walac/pyusb.git
-pushd pyusb
+cd pyusb
 python setup.py install
-popd
+cd ..
 rm -rf pyusb

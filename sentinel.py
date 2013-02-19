@@ -126,9 +126,9 @@ class Turret():
          time.sleep(- down_seconds)
          self.launcher.turretStop()
 
-      # OpenCV takes pictures VERY quickly, so if we use it (Windows only), we must
+      # OpenCV takes pictures VERY quickly, so if we use it (Windows and OS X), we must
       # add an artificial delay to reduce camera wobble and improve clarity
-      if sys.platform == 'win32':
+      if sys.platform == 'win32' or sys.platform == 'darwin':
          time.sleep(.2)
 
    # turn on LED if face detected in range, and fire missiles if armed
