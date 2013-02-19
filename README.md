@@ -6,12 +6,12 @@ Impress your friends! Intimidate your enemies!
 
 ![Demonstration of Sentinel](https://raw.github.com/AlexNisnevich/sentinel/master/demonstration.jpg)
 
-1\.  [Hardware Requirements](#hardwarerequirements)
-2\.  [Software Requirements and Installation](#softwarerequirementsandinstallation)
-2.1\.  [Linux](#linux)
-2.2\.  [Windows](#windows)
-2.3\.  [Mac OS X](#macosx)
-3\.  [Usage](#usage)
+1\.  [Hardware Requirements](#hardwarerequirements)  
+2\.  [Software Requirements and Installation](#softwarerequirementsandinstallation)  
+2.1\.  [Linux](#linux)  
+2.2\.  [Windows](#windows)  
+2.3\.  [Mac OS X](#macosx)  
+3\.  [Usage](#usage)  
 
 <a name="hardwarerequirements"></a>
 
@@ -37,9 +37,9 @@ Otherwise (or if the script doesn't work for you), install the following depende
 - **libusb** 1.0 (in Ubuntu/Debian, `sudo apt-get install libusb-dev`)
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
 - **OpenCV** 2.3+ with Python bindings
-	- In Ubuntu 12.04+ or latest Debian, `sudo apt-get install python-opencv` will install the correct version
-	- In older versions of Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh) (tested with 11.10)
-	- In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
+  - In Ubuntu 12.04+ or latest Debian, `sudo apt-get install python-opencv` will install the correct version
+  - In older versions of Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh) (tested with 11.10)
+  - In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
 - **streamer** (in Ubuntu/Debian, `sudo apt-get install streamer`)
 - **ImageMagick** (in Ubuntu/Debian, `sudo apt-get install imagemagick`)
 

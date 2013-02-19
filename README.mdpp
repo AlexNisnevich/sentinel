@@ -17,7 +17,7 @@ Impress your friends! Intimidate your enemies!
 ### Linux
 If you're on Ubuntu 12.04+ or Debian (tested with Linux Mint Debian), you can simply run the included installation script:
 ```
-> sudo install/install_on_ubuntu_or_debian.sh
+> sudo install/ubuntu_debian.sh
 ```
 
 Otherwise (or if the script doesn't work for you), install the following dependencies:
@@ -26,10 +26,11 @@ Otherwise (or if the script doesn't work for you), install the following depende
 - **libusb** 1.0 (in Ubuntu/Debian, `sudo apt-get install libusb-dev`)
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
 - **OpenCV** 2.3+ with Python bindings
-	- In Ubuntu 12.04+ or latest Debian, `sudo apt-get install python-opencv` will install the correct version
-	- In older versions of Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh) (tested with 11.10)
-	- In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
+  - In Ubuntu 12.04+ or latest Debian, `sudo apt-get install python-opencv` will install the correct version
+  - In older versions of Ubuntu, you can follow [these instructions](http://jayrambhia.wordpress.com/2012/06/20/install-opencv-2-4-in-ubuntu-12-04-precise-pangolin/) or use [this bash script](https://github.com/jayrambhia/Install-OpenCV/blob/master/Ubuntu/2.4/opencv2_4_3.sh) (tested with 11.10)
+  - In ArchLinux, `pacman -S python2-numpy` then `pacman -S opencv 2.4.0_a-4`
 - **streamer** (in Ubuntu/Debian, `sudo apt-get install streamer`)
+- **ImageMagick** (in Ubuntu/Debian, `sudo apt-get install imagemagick`)
 
 After installing all of the software requirements, you can run Sentinel:
 ```
@@ -55,18 +56,22 @@ After installing all of the software requirements, you can run Sentinel from Pyt
 
 ### Mac OS X
 
-**NOTE: Sentinel is currently untested on OS X. These instructions may or may not be correct.**
+If you have [Homebrew](http://mxcl.github.com/homebrew/), you can simply run the included installation script:
+```
+> sudo install/mac_osx.sh
+```
 
-Install the following dependencies:
+Otherwise (or if the script doesn't work for you), install the following dependencies:
 
-- **Python** 2.7, 32-bit (should be pre-installed)
+- **Python** 2.7, 32-bit (if not pre-installed)
 - **libusb** 1.0 (`sudo port install libusb` or `sudo brew install libusb-devel +universal`)
 - **PyUSB** 1.0 (https://github.com/walac/pyusb)
+- **NumPy** (`pip install numpy`)
 - **OpenCV** 2.3+ with Python bindings (`sudo port -v install opencv +python27` or `sudo brew install opencv`)
 
 After installing all of the software requirements, you can run Sentinel:
 ```
-> sudo ./sentinel.py
+> sudo python ./sentinel.py
 ```
 
 ## Usage
