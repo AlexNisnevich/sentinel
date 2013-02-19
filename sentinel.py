@@ -89,6 +89,8 @@ class Turret():
 
    # roughly centers the turret
    def center(self):
+      print 'Centering camera ...'
+
       self.launcher.turretLeft()
       time.sleep(4)
       self.launcher.turretRight()
@@ -181,7 +183,7 @@ class Camera():
                + self.opts.image_dimensions + " -b 16 -o " + img_file, stdout=FNULL, shell=True)
          self.current_frame = cv2.imread(img_file)
       else:
-         # on Windows, use OpenCV to grab latest camera frame and store in self.current_frame
+         # on Windows and OS X, use OpenCV to grab latest camera frame and store in self.current_frame
 
          if not self.webcam.grab():
             raise ValueError('frame grab failed')
@@ -260,7 +262,7 @@ class Camera():
             self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(), self.opts.processed_img_file))
 
 if __name__ == '__main__':
-   if sys.platform == 'linux2' and not os.geteuid() == 0:
+   if (sys.platform == 'linux2' or sys.platform == 'darwin') and not os.geteuid() == 0:
        sys.exit("Script must be run as root.")
 
    # command-line options

@@ -8,7 +8,8 @@
 # to get OpenCV working correctly after running this script.
 # (I've tested the opencv2_4_3.sh script with Ubuntu 11.10. Your mileage may vary for even older versions.)
 #
-# Run as superuser: (sudo ./install_on_ubuntu_or_debian.sh)
+# Run as superuser:
+# 	> sudo ./ubuntu_debian.sh
 
 apt-get install python-opencv libusb-dev streamer imagemagick
 
