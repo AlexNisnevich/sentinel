@@ -161,7 +161,7 @@ class Camera():
    def dispose(self):
       if sys.platform == 'linux2' or sys.platform == 'darwin':
          if self.current_image_viewer:
-            subprocess.call(['killall', self.current_image_viewer])
+            subprocess.call(['killall', self.current_image_viewer], stdout=FNULL, stderr=FNULL)
       else:
          self.webcam.release()
 
@@ -241,21 +241,20 @@ class Camera():
 
       return face_detected, x_adj, y_adj
 
+   # display the OpenCV-processed images
    def display(self):
-      # display the OpenCV-processed images
-      if sys.platform == 'linux2' or sys.platform == 'darwin':
+      if sys.platform == 'linux2':
+         # Linux: display with ImageMagick
          if self.current_image_viewer:
-            subprocess.call(['killall', self.current_image_viewer])
-
-         if sys.platform == 'linux2':
-            command = "display " + self.opts.processed_img_file + ' &'
-            self.current_image_viewer = 'display'
-         elif sys.platform == 'darwin':
-            command = 'open -a Preview ' + self.opts.processed_img_file
-            self.current_image_viewer = 'Preview'
-
-         subprocess.call(command, stdout=FNULL, stderr=FNULL, shell=True)
+            subprocess.call(['killall', self.current_image_viewer], stdout=FNULL, stderr=FNULL)
+         subprocess.call("display " + self.opts.processed_img_file + ' &', stdout=FNULL, stderr=FNULL, shell=True)
+         self.current_image_viewer = 'display'
+      elif sys.platform == 'darwin':
+         # OS X: display with Preview
+         subprocess.call('open -a Preview ' + self.opts.processed_img_file, stdout=FNULL, stderr=FNULL, shell=True)
+         self.current_image_viewer = 'Preview'
       else:
+         # Windows: display with Windows Photo Viewer
          if not self.current_image_viewer:
             ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
             self.current_image_viewer = subprocess.Popen('%s %s\%s' % (ImageViewer, os.getcwd(), self.opts.processed_img_file))
@@ -276,7 +275,7 @@ if __name__ == '__main__':
                      help="specify the camera # to use. Default: 0", metavar="NUM")
    parser.add_option("-s", "--size", dest="image_dimensions", default='320x240',
                      help="image dimensions (recommended: 320x240 or 640x480). Default: 320x240", metavar="WIDTHxHEIGHT")
-   parser.add_option("-b", "--buffer", dest="buffer_size", default=2,
+   parser.add_option("-b", "--buffer", dest="buffer_size", type="int", default=2,
                      help="size of camera buffer. Default: 2", metavar="SIZE")
    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                      help="detailed output, including timing information")
