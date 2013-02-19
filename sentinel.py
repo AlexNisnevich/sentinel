@@ -151,7 +151,7 @@ class Camera():
       self.opts = opts
       self.current_image_viewer = None # image viewer not yet launched
 
-      if sys.platform == 'win32':
+      if sys.platform == 'win32' or sys.platform == 'darwin':
          self.webcam = cv2.VideoCapture(int(self.opts.camera)) #open a channel to our camera
          if(not self.webcam.isOpened()): #return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
@@ -159,7 +159,7 @@ class Camera():
 
    # turn off camera properly
    def dispose(self):
-      if sys.platform == 'linux2':
+      if sys.platform == 'linux2' or sys.platform == 'darwin':
          if self.current_image_viewer:
             subprocess.call(['killall', self.current_image_viewer])
       else:
@@ -243,11 +243,18 @@ class Camera():
 
    def display(self):
       # display the OpenCV-processed images
-      if sys.platform == 'linux2':
+      if sys.platform == 'linux2' or sys.platform == 'darwin':
          if self.current_image_viewer:
             subprocess.call(['killall', self.current_image_viewer])
-         subprocess.call("display " + self.opts.processed_img_file + ' &', stdout=FNULL, stderr=FNULL, shell=True)
-         self.current_image_viewer = 'display'
+
+         if sys.platform == 'linux2':
+            command = "display " + self.opts.processed_img_file + ' &'
+            self.current_image_viewer = 'display'
+         elif sys.platform == 'darwin':
+            command = 'open -a Preview ' + self.opts.processed_img_file
+            self.current_image_viewer = 'Preview'
+
+         subprocess.call(command, stdout=FNULL, stderr=FNULL, shell=True)
       else:
          if not self.current_image_viewer:
             ImageViewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'

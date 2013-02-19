@@ -10,7 +10,8 @@
 #
 # Run as superuser: (sudo ./install_on_ubuntu_or_debian.sh)
 
-apt-get install python-opencv libusb-dev streamer
+apt-get install python-opencv libusb-dev streamer imagemagick
+
 git clone git://github.com/walac/pyusb.git
 pushd pyusb
 python setup.py install
