@@ -137,22 +137,26 @@ class Turret():
    #stores images of the targets within the killcam folder
    def killcam(self):
       #find first unused filename
+      if not os.path.exists("killcam"):
+         os.makedirs("killcam")
       filename_locked_on = os.path.join("killcam", "lockedon" + str(self.killcam_count) + ".jpg")
       while os.path.exists(filename_locked_on):
          self.killcam_count += 1
          filename_locked_on = os.path.join("killcam", "lockedon" + str(self.killcam_count) + ".jpg")
       shutil.copyfile(self.opts.processed_img_file, filename_locked_on)  # save a copy of the target locked on
       filename_firing =  os.path.join("killcam","firing" + str(self.killcam_count) + ".jpg")         
-      time.sleep(1)  #wait a little bit to attempt to catch the target's reaction.  
+      time.sleep(1)  #wait a little bit to attempt to catch the target's reaction.  Tweak this value for most hilarious action shots
       #take another picture of the target while it is being fired upon 
       camera.capture()  
       camera.face_detect(filename=filename_firing)  
       self.killcam_count += 1   
 
    # turn on LED if face detected in range, and fire missiles if armed
-   def ready_aim_fire(self, camera=None):
+   def ready_aim_fire(self, x_adj, y_adj, size, camera=None):
       fired = False
       if face_detected and abs(x_adj)<.05 and abs(y_adj)<.05:
+         if (size < .05): #if target appears to be far away, take a lob shot
+            self.adjust(0,-1) #tilt the turret up to try to increase range
          turret.launcher.ledOn()
          if self.opts.armed:
             turret.launcher.turretFire()
@@ -254,8 +258,9 @@ class Camera():
       if self.opts.verbose:
          print 'faces detected: ' + str(faces)
       faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
-      y_offset = .1 # an adjustment factor to aid in hitting targets at a distance
+      y_offset = .15 # an adjustment factor to aid in hitting targets at a distance
       x_adj, y_adj = 0, 0
+      face_size = 0
       if len(faces) > 0:
          face_detected = True
 
@@ -268,11 +273,11 @@ class Camera():
          draw_reticule(img, x, y, w, h, (0 , 0, 170), "corners")
          x_adj =  ((x + w/2) - img_w/2) / float(img_w)
          y_adj = ((y + h/2) - img_h/2) / float(img_h) - y_offset
+         face_size = w * h / (img_w * img_h)
       else:
          face_detected = False
       cv2.imwrite(filename, img)
-
-      return face_detected, x_adj, y_adj
+      return face_detected, x_adj, y_adj , face_size
 
    # display the OpenCV-processed images
    def display(self):
@@ -331,7 +336,7 @@ if __name__ == '__main__':
             camera.capture()
             capture_time = time.time()
 
-            face_detected, x_adj, y_adj = camera.face_detect()
+            face_detected, x_adj, y_adj, face_size = camera.face_detect()
             detection_time = time.time()
 
             if not opts.no_display:
@@ -348,7 +353,7 @@ if __name__ == '__main__':
                print "detection time: " + str(detection_time - capture_time)
                print "movement time: " + str(movement_time - detection_time)
 
-            turret.ready_aim_fire(camera)
+            turret.ready_aim_fire(x_adj, y_adj, face_size, camera)
 
          except KeyboardInterrupt:
             turret.dispose()
