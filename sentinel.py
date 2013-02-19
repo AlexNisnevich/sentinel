@@ -27,6 +27,7 @@ import time
 import usb.core
 import cv2
 import subprocess
+import shutil
 from optparse import OptionParser
 
 # globals
@@ -81,6 +82,8 @@ class Turret():
       # initial setup
       self.center()
       self.launcher.ledOff()
+      self.cooldown_time = 3
+      self.killcam_count = 0
 
    # turn off turret properly
    def dispose(self):
@@ -131,22 +134,46 @@ class Turret():
       if sys.platform == 'win32' or sys.platform == 'darwin':
          time.sleep(.2)
 
+   #stores images of the targets within the killcam folder
+   def killcam(self):
+      #find first unused filename
+      filename_locked_on = os.path.join("killcam", "lockedon" + str(self.killcam_count) + ".jpg")
+      while os.path.exists(filename_locked_on):
+         self.killcam_count += 1
+         filename_locked_on = os.path.join("killcam", "lockedon" + str(self.killcam_count) + ".jpg")
+      shutil.copyfile(self.opts.processed_img_file, filename_locked_on)  # save a copy of the target locked on
+      filename_firing =  os.path.join("killcam","firing" + str(self.killcam_count) + ".jpg")         
+      time.sleep(1)  #wait a little bit to attempt to catch the target's reaction.  
+      #take another picture of the target while it is being fired upon 
+      camera.capture()  
+      camera.face_detect(filename=filename_firing)  
+      self.killcam_count += 1   
+
    # turn on LED if face detected in range, and fire missiles if armed
-   def ready_aim_fire(self):
+   def ready_aim_fire(self, camera=None):
+      fired = False
       if face_detected and abs(x_adj)<.05 and abs(y_adj)<.05:
          turret.launcher.ledOn()
          if self.opts.armed:
             turret.launcher.turretFire()
-            time.sleep(3) # roughly how long it takes to fire
             self.missiles_remaining -= 1
+            if camera:
+               self.killcam() #save a picture of the target
+
+            time.sleep(3) #disable turret for approximate time required to fire
+
             print 'Missile fired! Estimated ' + str(self.missiles_remaining) + ' missiles remaining.'
             if self.missiles_remaining < 1:
                raw_input("Ammunition depleted. Awaiting order to continue assault. [ENTER]")
                self.missiles_remaining = 4
+            fired = True
          else:
             print 'Turret trained but not firing because of the --disarm directive.'
       else:
          turret.launcher.ledOff()
+      return fired
+
+
 
 class Camera():
    def __init__(self, opts):
@@ -194,7 +221,11 @@ class Camera():
             raise ValueError('frame capture failed')
          self.current_frame = most_recent_frame
 
-   def face_detect(self):
+
+   #runs facial recognition on our previously captured image and returns percentage difference between target and center
+   def face_detect(self, filename=None):
+      if not filename:
+         filename = self.opts.processed_img_file
       def draw_reticule(img, x, y, width, height, color, style = "corners"):
          w, h = width, height
          if style == "corners":
@@ -223,7 +254,7 @@ class Camera():
       if self.opts.verbose:
          print 'faces detected: ' + str(faces)
       faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
-      y_offset = .05
+      y_offset = .1 # an adjustment factor to aid in hitting targets at a distance
       x_adj, y_adj = 0, 0
       if len(faces) > 0:
          face_detected = True
@@ -239,7 +270,7 @@ class Camera():
          y_adj = ((y + h/2) - img_h/2) / float(img_h) - y_offset
       else:
          face_detected = False
-      cv2.imwrite(self.opts.processed_img_file, img)
+      cv2.imwrite(filename, img)
 
       return face_detected, x_adj, y_adj
 
@@ -317,7 +348,8 @@ if __name__ == '__main__':
                print "detection time: " + str(detection_time - capture_time)
                print "movement time: " + str(movement_time - detection_time)
 
-            turret.ready_aim_fire()
+            turret.ready_aim_fire(camera)
+
          except KeyboardInterrupt:
             turret.dispose()
             camera.dispose()
