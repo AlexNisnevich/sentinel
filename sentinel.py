@@ -28,6 +28,7 @@ import usb.core
 import cv2
 import subprocess
 import shutil
+import math
 from optparse import OptionParser
 
 # globals
@@ -151,14 +152,23 @@ class Turret():
       camera.face_detect(filename=filename_firing)  
       self.killcam_count += 1   
 
+   def projectile_compensation(self, target_y_size):
+      if target_y_size != 0:
+         adjust_amount = 0.1* math.log(target_y_size) #objects further away will need a greater adjustment to hit target
+      else: #log 0 will throw an error, so handle this case even though unlikely to occur
+         adjust_amount = 0
+      self.adjust(0, adjust_amount) #tilt the turret up to try to increase range
+      if opts.verbose:
+         print "size of target: %.6f" % target_y_size
+         print "compensation amount: %.6f" % adjust_amount
+
    # turn on LED if face detected in range, and fire missiles if armed
-   def ready_aim_fire(self, x_adj, y_adj, size, camera=None):
+   def ready_aim_fire(self, x_adj, y_adj, target_y_size, camera=None):
       fired = False
-      if face_detected and abs(x_adj)<.05 and abs(y_adj)<.05:
-         if (size < .05): #if target appears to be far away, take a lob shot
-            self.adjust(0,-1) #tilt the turret up to try to increase range
-         turret.launcher.ledOn()
+      if face_detected and abs(x_adj)<.05 and abs(y_adj)<.05:           
+         turret.launcher.ledOn() #led will turn on when target is locked
          if self.opts.armed:
+            self.projectile_compensation(target_y_size) #aim a little higher if our target is in the distance
             turret.launcher.turretFire()
             self.missiles_remaining -= 1
             if camera:
@@ -258,9 +268,8 @@ class Camera():
       if self.opts.verbose:
          print 'faces detected: ' + str(faces)
       faces.sort(key=lambda face:face[2]*face[3]) # sort by size of face (we use the last face for computing x_adj, y_adj)
-      y_offset = .15 # an adjustment factor to aid in hitting targets at a distance
       x_adj, y_adj = 0, 0
-      face_size = 0
+      face_y_size = 0
       if len(faces) > 0:
          face_detected = True
 
@@ -272,12 +281,12 @@ class Camera():
          (x,y,w,h) = faces[-1]
          draw_reticule(img, x, y, w, h, (0 , 0, 170), "corners")
          x_adj =  ((x + w/2) - img_w/2) / float(img_w)
-         y_adj = ((y + h/2) - img_h/2) / float(img_h) - y_offset
-         face_size = w * h / (img_w * img_h)
+         y_adj = ((y + h/2) - img_h/2) / float(img_h) 
+         face_y_size = h / float(img_h)
       else:
          face_detected = False
       cv2.imwrite(filename, img)
-      return face_detected, x_adj, y_adj , face_size
+      return face_detected, x_adj, y_adj , face_y_size
 
    # display the OpenCV-processed images
    def display(self):
@@ -336,7 +345,7 @@ if __name__ == '__main__':
             camera.capture()
             capture_time = time.time()
 
-            face_detected, x_adj, y_adj, face_size = camera.face_detect()
+            face_detected, x_adj, y_adj, face_y_size = camera.face_detect()
             detection_time = time.time()
 
             if not opts.no_display:
@@ -344,7 +353,7 @@ if __name__ == '__main__':
 
             if face_detected:
                if opts.verbose:
-                  print "adjusting turret: x=" + str(x_adj) + ", y=" + str(y_adj)
+                  print "adjusting turret: x=" + str(x_adj) + ", y=" + str(y_adj)                  
                turret.adjust(x_adj, y_adj)
             movement_time = time.time()
 
@@ -353,7 +362,7 @@ if __name__ == '__main__':
                print "detection time: " + str(detection_time - capture_time)
                print "movement time: " + str(movement_time - detection_time)
 
-            turret.ready_aim_fire(x_adj, y_adj, face_size, camera)
+            turret.ready_aim_fire(x_adj, y_adj, face_y_size, camera)
 
          except KeyboardInterrupt:
             turret.dispose()
