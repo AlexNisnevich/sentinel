@@ -6,26 +6,35 @@ Impress your friends! Intimidate your enemies!
 
 ![Demonstration of Sentinel](https://raw.github.com/AlexNisnevich/sentinel/master/demonstration.jpg)
 
-1\.  [Hardware Requirements](#hardwarerequirements)  
-2\.  [Software Requirements and Installation](#softwarerequirementsandinstallation)  
-2.1\.  [Linux](#linux)  
-2.2\.  [Windows](#windows)  
-2.3\.  [Mac OS X](#macosx)  
-3\.  [Usage](#usage)  
+1\.  [Video Demonstration](#videodemonstration)  
+2\.  [Hardware Requirements](#hardwarerequirements)  
+3\.  [Software Requirements and Installation](#softwarerequirementsandinstallation)  
+3.1\.  [Linux](#linux)  
+3.2\.  [Windows](#windows)  
+3.3\.  [Mac OS X](#macosx)  
+4\.  [Usage](#usage)  
+
+<a name="videodemonstration"></a>
+
+## 1\. Video Demonstration
+
+Here's a quick video we put together due to popular demand. Sentinel is usually significantly faster at homing in on the target, but our computers were bogged down while we were recording the video.
+
+[![Link to Youtube video](https://raw.github.com/AlexNisnevich/sentinel/master/video_screenshot.jpg)](http://www.youtube.com/watch?feature=player_detailpage&v=L2It-kK0yfM)
 
 <a name="hardwarerequirements"></a>
 
-## 1\. Hardware Requirements
+## 2\. Hardware Requirements
 - **[Dream Cheeky brand USB missile launcher](http://www.amazon.com/Dream-Cheeky-908-Electronic-Reference/dp/B004SAYO46)** (tested with the Thunder model, should also work with the Storm model)
 - small **webcam** attached to USB missile launcher (tested with Logitech C270)
 
 <a name="softwarerequirementsandinstallation"></a>
 
-## 2\. Software Requirements and Installation
+## 3\. Software Requirements and Installation
 
 <a name="linux"></a>
 
-### 2.1\. Linux
+### 3.1\. Linux
 If you're on Ubuntu 12.04+ or Debian (tested with Linux Mint Debian), you can simply run the included installation script:
 ```
 > sudo install/ubuntu_debian.sh
@@ -50,7 +59,7 @@ After installing all of the software requirements, you can run Sentinel:
 
 <a name="windows"></a>
 
-### 2.2\. Windows
+### 3.2\. Windows
 
 Install the following dependencies:
 
@@ -69,7 +78,7 @@ After installing all of the software requirements, you can run Sentinel from Pyt
 
 <a name="macosx"></a>
 
-### 2.3\. Mac OS X
+### 3.3\. Mac OS X
 
 If you have [Homebrew](http://mxcl.github.com/homebrew/), you can simply run the included installation script:
 ```
@@ -91,7 +100,7 @@ After installing all of the software requirements, you can run Sentinel:
 
 <a name="usage"></a>
 
-## 3\. Usage
+## 4\. Usage
 
 ```
 Usage: sentinel.py [options]
