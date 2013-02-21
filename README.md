@@ -20,7 +20,7 @@ Impress your friends! Intimidate your enemies!
 
 Here's a quick video we put together due to popular demand. Sentinel is usually significantly faster at homing in on the target, but our computers were bogged down while we were recording the video.
 
-[![Link to Youtube video](https://raw.github.com/AlexNisnevich/sentinel/master/video_screenshot.jpg)](http://www.youtube.com/watch?feature=player_detailpage&v=L2It-kK0yfM)
+[![Link to Youtube video](http://img4.glowfoto.com/images/2013/02/21-0833411590L.png)](http://www.youtube.com/watch?v=L2It-kK0yfM)
 
 <a name="hardwarerequirements"></a>
 
