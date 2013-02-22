@@ -8,11 +8,15 @@ Impress your friends! Intimidate your enemies!
 
 !TOC
 
-## Video Demonstration
+## How it Works
 
-Here's a quick video we put together due to popular demand. Sentinel is usually significantly faster at homing in on the target, but our computers were bogged down while we were recording the video.
+I wrote [an article](http://alex.nisnevich.com/blog/2013/02/19/face_tracking_with_open_cv_and_a_usb_missile_launcher.html) about how we implemented Sentinel using OpenCV.
 
-<iframe width="640" height="480" src="http://www.youtube.com/embed/L2It-kK0yfM" frameborder="0" allowfullscreen></iframe>
+### Video Demonstration
+
+Here's a quick video that we put together due to popular demand. Sentinel is usually significantly faster at homing in on the target, but our computers were bogged down while we were recording the video.
+
+!VIDEO "http://www.youtube.com/embed/L2It-kK0yfM"
 
 ## Hardware Requirements
 - **[Dream Cheeky brand USB missile launcher](http://www.amazon.com/Dream-Cheeky-908-Electronic-Reference/dp/B004SAYO46)** (tested with the Thunder model, should also work with the Storm model)

@@ -6,7 +6,8 @@ Impress your friends! Intimidate your enemies!
 
 ![Demonstration of Sentinel](https://raw.github.com/AlexNisnevich/sentinel/master/demonstration.jpg)
 
-1\.  [Video Demonstration](#videodemonstration)  
+1\.  [How it Works](#howitworks)  
+1.1\.  [Video Demonstration](#videodemonstration)  
 2\.  [Hardware Requirements](#hardwarerequirements)  
 3\.  [Software Requirements and Installation](#softwarerequirementsandinstallation)  
 3.1\.  [Linux](#linux)  
@@ -14,13 +15,19 @@ Impress your friends! Intimidate your enemies!
 3.3\.  [Mac OS X](#macosx)  
 4\.  [Usage](#usage)  
 
+<a name="howitworks"></a>
+
+## 1\. How it Works
+
+I wrote [an article](http://alex.nisnevich.com/blog/2013/02/19/face_tracking_with_open_cv_and_a_usb_missile_launcher.html) about how we implemented Sentinel using OpenCV.
+
 <a name="videodemonstration"></a>
 
-## 1\. Video Demonstration
+### 1.1\. Video Demonstration
 
-Here's a quick video we put together due to popular demand. Sentinel is usually significantly faster at homing in on the target, but our computers were bogged down while we were recording the video.
+Here's a quick video that we put together due to popular demand. Sentinel is usually significantly faster at homing in on the target, but our computers were bogged down while we were recording the video.
 
-[![Link to Youtube video](http://img4.glowfoto.com/images/2013/02/21-0833411590L.png)](http://www.youtube.com/watch?v=L2It-kK0yfM)
+[![Link to Youtube video](images/youtube/L2It-kK0yfM.png)](http://www.youtube.com/watch?v=L2It-kK0yfM)
 
 <a name="hardwarerequirements"></a>
 
