@@ -307,12 +307,11 @@ class Camera():
     def __init__(self, opts):
         self.opts = opts
         self.current_image_viewer = None  # image viewer not yet launched
-
-        if sys.platform == 'win32' or sys.platform == 'darwin':
-            self.webcam = cv2.VideoCapture(int(self.opts.camera))  # open a channel to our camera
-            if(not self.webcam.isOpened()):  # return error if unable to connect to hardware
-                raise ValueError('Error connecting to specified camera')
-            self.clear_buffer()
+        
+        self.webcam = cv2.VideoCapture(int(self.opts.camera))  # open a channel to our camera
+        if(not self.webcam.isOpened()):  # return error if unable to connect to hardware
+            raise ValueError('Error connecting to specified camera')
+        self.clear_buffer()
 
     # turn off camera properly
     def dispose(self):
@@ -328,18 +327,8 @@ class Camera():
             if not self.webcam.retrieve(channel=0):
                 raise ValueError('no more images in buffer, mate')
 
-    # captures a single frame - currently a platform-dependent implementation
+    # captures a single frame
     def capture(self):
-        if sys.platform == 'linux2':
-            # on Linux, use streamer to generate a jpeg, then have OpenCV load it into self.current_frame
-
-            img_file = 'capture.jpeg'
-            subprocess.call("streamer -q -b 16 -c /dev/video" + self.opts.camera + " -s "
-                            + self.opts.image_dimensions + " -o " + img_file, stdout=FNULL, shell=True)
-            self.current_frame = cv2.imread(img_file)
-        else:
-            # on Windows and OS X, use OpenCV to grab latest camera frame and store in self.current_frame
-
             if not self.webcam.grab():
                 raise ValueError('frame grab failed')
             self.clear_buffer()
@@ -348,6 +337,8 @@ class Camera():
             if not retval:
                 raise ValueError('frame capture failed')
             self.current_frame = most_recent_frame
+            # delay of 2 ms for refreshing screen (time.sleep() doesn't work)
+            cv2.waitKey(2)  
 
     # runs facial recognition on our previously captured image and returns
     # (x,y)-distance between target and center (as a fraction of image dimensions)
@@ -371,6 +362,7 @@ class Camera():
 
         # load image, then resize it to specified size
         img = self.current_frame
+
         img_w, img_h = map(int, self.opts.image_dimensions.split('x'))
         img = cv2.resize(img, (img_w, img_h))
 
@@ -413,23 +405,25 @@ class Camera():
             face_detected = False
 
         cv2.imwrite(filename, img)
+        
+        #store modified image as class variable so that display() can access it
+        self.frame_mod = img 
 
         return face_detected, x_adj, y_adj, face_y_size
 
     # display the OpenCV-processed images
     def display(self):
+        
         if sys.platform == 'linux2':
-            # Linux: display with ImageMagick
-            if self.current_image_viewer:
-                subprocess.call(['killall', self.current_image_viewer], stdout=FNULL, stderr=FNULL)
-            subprocess.call("display " + self.opts.processed_img_file + ' &',
-                            stdout=FNULL, stderr=FNULL, shell=True)
-            self.current_image_viewer = 'display'
+            # Linux: display with openCV 
+            cv2.imshow("Killcamera", self.frame_mod)
+
         elif sys.platform == 'darwin':
             # OS X: display with Preview
             subprocess.call('open -a Preview ' + self.opts.processed_img_file,
                             stdout=FNULL, stderr=FNULL, shell=True)
             self.current_image_viewer = 'Preview'
+        
         else:
             # Windows: display with Windows Photo Viewer
             viewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
