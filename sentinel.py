@@ -10,6 +10,8 @@
 #
 # Options:
 #   -h, --help            show this help message and exit
+#   -l ID, --launcher=ID  specify VendorID of the missile launcher to use. 
+#                         Default: '2123' (dreamcheeky thunder) 
 #   -d, --disarm          track faces but do not fire any missiles
 #   -r, --reset           reset the turret position and exit
 #   --nd, --no-display    do not display captured images
@@ -40,8 +42,93 @@ class AttributeDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
+# Launcher commands for USB Missile Launcher (VendorID:0x1130 ProductID:0x0202 Tenx Technology, Inc.) 
+class Launcher1130():
+    # Commands and control messages are derived from 
+    # http://sourceforge.net/projects/usbmissile/ and http://code.google.com/p/pymissile/
+    
+    # 7 Bytes of Zeros to fill 64 Bit packet (8 Bit for direction/action + 56 Bit of Zeros to fill packet)
+    cmdFill = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    
+    # Low level launcher driver commands
+    # this code mostly taken from https://github.com/nmilford/stormLauncher
+    # with bits from https://github.com/codedance/Retaliation
+    def __init__(self):
+        self.dev = usb.core.find(idVendor=0x1130, idProduct=0x0202)
+        if self.dev is None:
+            raise ValueError('Missile launcher not found.')
+        if sys.platform == 'linux2' and self.dev.is_kernel_driver_active(0) is True:
+            self.dev.detach_kernel_driver(0)
+        if sys.platform == 'linux2' and self.dev.is_kernel_driver_active(1) is True:
+            self.dev.detach_kernel_driver(1)
+        self.dev.set_configuration()
+        
+    def turretLeft(self):
+        cmd = [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        self.turretMove(cmd)
 
-class LauncherDriver():
+    def turretRight(self):
+        cmd = [0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        self.turretMove(cmd)
+    
+    def turretUp(self):
+        cmd = [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        self.turretMove(cmd)
+
+    def turretDown(self):
+        cmd = [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x08] + self.cmdFill
+        self.turretMove(cmd)
+
+    def turretFire(self):
+        cmd = [0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x08] + self.cmdFill
+        self.turretMove(cmd)
+
+    def turretStop(self):
+        cmd = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        self.turretMove(cmd)
+
+    def ledOn(self):
+        # cannot turn on LED. Device has no LED. 
+        pass
+
+    def ledOff(self):
+        # cannot turn off LED. Device has no LED. 
+        pass
+    
+    # Missile launcher requires two init-packets before the actual command can be sent.
+    # The init-packets consist of 8 Bit payload, the actual command is 64 Bit payload
+    def turretMove(self, cmd):
+        # Two init-packets plus actual command
+        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x01, [ord('U'), ord('S'), ord('B'), ord('C'), 0, 0, 4, 0])        
+        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x01, [ord('U'), ord('S'), ord('B'), ord('C'), 0, 64, 2, 0])        
+        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x00, cmd)
+
+        # roughly centers the turret
+    def center(self):
+        print 'Centering camera ...'
+        self.turretLeft()
+        time.sleep(3.5)
+        self.turretLeft()
+        time.sleep(3.5)
+        self.turretRight()
+        time.sleep(3)
+        self.turretRight()
+        time.sleep(2)
+        self.turretStop()
+        self.turretUp()
+        time.sleep(3)
+        self.turretDown()
+        time.sleep(1.5)
+        self.turretStop()
+
+# Launcher commands for DreamCheeky Thunder (VendorID:0x2123 ProductID:0x1010) 
+class Launcher2123():
     # Low level launcher driver commands
     # this code mostly taken from https://github.com/nmilford/stormLauncher
     # with bits from https://github.com/codedance/Retaliation
@@ -77,23 +164,6 @@ class LauncherDriver():
     def ledOff(self):
         self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
-
-class Turret():
-    def __init__(self, opts):
-        self.opts = opts
-        self.launcher = LauncherDriver()
-        self.missiles_remaining = 4
-        # initial setup
-        self.center()
-        self.launcher.ledOff()
-        self.cooldown_time = 3
-        self.killcam_count = 0
-
-    # turn off turret properly
-    def dispose(self):
-        self.launcher.turretStop()
-        turret.launcher.ledOff()
-
     # roughly centers the turret
     def center(self):
         print 'Centering camera ...'
@@ -108,7 +178,34 @@ class Turret():
         time.sleep(1)
         self.launcher.turretDown()
         time.sleep(0.25)
+        self.launcher.turretStop()        
+
+class Turret():
+    def __init__(self, opts):
+        self.opts = opts
+        
+        # Choose correct Launcher
+        if opts.lauchnerID == "1130":
+            self.launcher = Launcher1130();
+            self.missiles_remaining = 3
+        else:
+            self.launcher = Launcher2123();
+            self.missiles_remaining = 4
+        
+        # initial setup
+        self.center()
+        self.launcher.ledOff()
+        self.cooldown_time = 3
+        self.killcam_count = 0
+
+    # turn off turret properly
+    def dispose(self):
         self.launcher.turretStop()
+        turret.launcher.ledOff()
+
+    # roughly centers the turret
+    def center(self):
+        self.launcher.center()
 
     # adjusts the turret's position (units are fairly arbitary but work ok)
     def adjust(self, right_dist, down_dist):
@@ -345,6 +442,9 @@ if __name__ == '__main__':
 
     # command-line options
     parser = OptionParser()
+    parser.add_option("-l", "--launcher", dest="lauchnerID", default="2123",
+                      help="specify VendorID of the missile launcher to use. Default: '2123' (dreamcheeky thunder)",
+                      metavar="LAUNCHER")
     parser.add_option("-d", "--disarm", action="store_false", dest="armed", default=True,
                       help="track faces but do not fire any missiles")
     parser.add_option("-r", "--reset", action="store_true", dest="reset_only", default=False,
@@ -402,3 +502,4 @@ if __name__ == '__main__':
                 turret.dispose()
                 camera.dispose()
                 break
+            
