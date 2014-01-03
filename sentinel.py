@@ -185,7 +185,7 @@ class Turret():
         self.opts = opts
         
         # Choose correct Launcher
-        if opts.lauchnerID == "1130":
+        if opts.launcherID == "1130":
             self.launcher = Launcher1130();
             self.missiles_remaining = 3
         else:
@@ -436,7 +436,7 @@ if __name__ == '__main__':
 
     # command-line options
     parser = OptionParser()
-    parser.add_option("-l", "--launcher", dest="lauchnerID", default="2123",
+    parser.add_option("-l", "--launcher", dest="launcherID", default="2123",
                       help="specify VendorID of the missile launcher to use. Default: '2123' (dreamcheeky thunder)",
                       metavar="LAUNCHER")
     parser.add_option("-d", "--disarm", action="store_false", dest="armed", default=True,
