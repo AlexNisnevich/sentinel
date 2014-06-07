@@ -168,17 +168,17 @@ class Launcher2123():
     def center(self):
         print 'Centering camera ...'
 
-        self.launcher.turretLeft()
+        self.turretLeft()
         time.sleep(4)
-        self.launcher.turretRight()
+        self.turretRight()
         time.sleep(2)
-        self.launcher.turretStop()
+        self.turretStop()
 
-        self.launcher.turretUp()
+        self.turretUp()
         time.sleep(1)
-        self.launcher.turretDown()
+        self.turretDown()
         time.sleep(0.25)
-        self.launcher.turretStop()        
+        self.turretStop()        
 
 class Turret():
     def __init__(self, opts):
