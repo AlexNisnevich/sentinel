@@ -10,8 +10,8 @@
 #
 # Options:
 #   -h, --help            show this help message and exit
-#   -l ID, --launcher=ID  specify VendorID of the missile launcher to use. 
-#                         Default: '2123' (dreamcheeky thunder) 
+#   -l ID, --launcher=ID  specify VendorID of the missile launcher to use.
+#                         Default: '2123' (dreamcheeky thunder)
 #   -d, --disarm          track faces but do not fire any missiles
 #   -r, --reset           reset the turret position and exit
 #   --nd, --no-display    do not display captured images
@@ -42,11 +42,11 @@ class AttributeDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
-# Launcher commands for USB Missile Launcher (VendorID:0x1130 ProductID:0x0202 Tenx Technology, Inc.) 
+# Launcher commands for USB Missile Launcher (VendorID:0x1130 ProductID:0x0202 Tenx Technology, Inc.)
 class Launcher1130():
-    # Commands and control messages are derived from 
+    # Commands and control messages are derived from
     # http://sourceforge.net/projects/usbmissile/ and http://code.google.com/p/pymissile/
-    
+
     # 7 Bytes of Zeros to fill 64 Bit packet (8 Bit for direction/action + 56 Bit of Zeros to fill packet)
     cmdFill = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -55,7 +55,7 @@ class Launcher1130():
                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-    
+
     # Low level launcher driver commands
     # this code mostly taken from https://github.com/nmilford/stormLauncher
     # with bits from https://github.com/codedance/Retaliation
@@ -68,7 +68,7 @@ class Launcher1130():
         if sys.platform == 'linux2' and self.dev.is_kernel_driver_active(1) is True:
             self.dev.detach_kernel_driver(1)
         self.dev.set_configuration()
-        
+
     def turretLeft(self):
         cmd = [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
         self.turretMove(cmd)
@@ -76,7 +76,7 @@ class Launcher1130():
     def turretRight(self):
         cmd = [0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
         self.turretMove(cmd)
-    
+
     def turretUp(self):
         cmd = [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
         self.turretMove(cmd)
@@ -94,19 +94,19 @@ class Launcher1130():
         self.turretMove(cmd)
 
     def ledOn(self):
-        # cannot turn on LED. Device has no LED. 
+        # cannot turn on LED. Device has no LED.
         pass
 
     def ledOff(self):
-        # cannot turn off LED. Device has no LED. 
+        # cannot turn off LED. Device has no LED.
         pass
-    
+
     # Missile launcher requires two init-packets before the actual command can be sent.
     # The init-packets consist of 8 Bit payload, the actual command is 64 Bit payload
     def turretMove(self, cmd):
         # Two init-packets plus actual command
-        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x01, [ord('U'), ord('S'), ord('B'), ord('C'), 0, 0, 4, 0])        
-        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x01, [ord('U'), ord('S'), ord('B'), ord('C'), 0, 64, 2, 0])        
+        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x01, [ord('U'), ord('S'), ord('B'), ord('C'), 0, 0, 4, 0])
+        self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x01, [ord('U'), ord('S'), ord('B'), ord('C'), 0, 64, 2, 0])
         self.dev.ctrl_transfer(0x21, 0x09, 0x2, 0x00, cmd)
 
         # roughly centers the turret
@@ -127,7 +127,7 @@ class Launcher1130():
         time.sleep(1.5)
         self.turretStop()
 
-# Launcher commands for DreamCheeky Thunder (VendorID:0x2123 ProductID:0x1010) 
+# Launcher commands for DreamCheeky Thunder (VendorID:0x2123 ProductID:0x1010)
 class Launcher2123():
     # Low level launcher driver commands
     # this code mostly taken from https://github.com/nmilford/stormLauncher
@@ -169,21 +169,21 @@ class Launcher2123():
         print 'Centering camera ...'
 
         self.turretLeft()
-        time.sleep(4)
+        time.sleep(5)
         self.turretRight()
-        time.sleep(2)
+        time.sleep(3)
         self.turretStop()
 
         self.turretUp()
         time.sleep(1)
         self.turretDown()
         time.sleep(0.25)
-        self.turretStop()        
+        self.turretStop()
 
 class Turret():
     def __init__(self, opts):
         self.opts = opts
-        
+
         # Choose correct Launcher
         if opts.launcherID == "1130":
             self.launcher = Launcher1130();
@@ -191,7 +191,7 @@ class Turret():
         else:
             self.launcher = Launcher2123();
             self.missiles_remaining = 4
-        
+
         # initial setup
         self.center()
         self.launcher.ledOff()
@@ -209,8 +209,8 @@ class Turret():
 
     # adjusts the turret's position (units are fairly arbitary but work ok)
     def adjust(self, right_dist, down_dist):
-        right_seconds = right_dist * 0.64
-        down_seconds = down_dist * 0.48
+        right_seconds = right_dist * 0.40  # 0.64=default
+        down_seconds = down_dist * 0.30    # 0.48=default
 
         if right_seconds > 0:
             self.launcher.turretRight()
@@ -233,7 +233,7 @@ class Turret():
         # OpenCV takes pictures VERY quickly, so if we use it (Windows and OS X), we must
         # add an artificial delay to reduce camera wobble and improve clarity
         if sys.platform == 'win32' or sys.platform == 'darwin':
-            time.sleep(.2)
+            time.sleep(.1)
 
     #stores images of the targets within the killcam folder
     def killcam(self, camera):
@@ -307,7 +307,7 @@ class Camera():
     def __init__(self, opts):
         self.opts = opts
         self.current_image_viewer = None  # image viewer not yet launched
-        
+
         self.webcam = cv2.VideoCapture(int(self.opts.camera))  # open a channel to our camera
         if(not self.webcam.isOpened()):  # return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
@@ -338,7 +338,7 @@ class Camera():
                 raise ValueError('frame capture failed')
             self.current_frame = most_recent_frame
             # delay of 2 ms for refreshing screen (time.sleep() doesn't work)
-            cv2.waitKey(2)  
+            cv2.waitKey(2)
 
     # runs facial recognition on our previously captured image and returns
     # (x,y)-distance between target and center (as a fraction of image dimensions)
@@ -405,17 +405,17 @@ class Camera():
             face_detected = False
 
         cv2.imwrite(filename, img)
-        
+
         #store modified image as class variable so that display() can access it
-        self.frame_mod = img 
+        self.frame_mod = img
 
         return face_detected, x_adj, y_adj, face_y_size
 
     # display the OpenCV-processed images
     def display(self):
-        
+
         if sys.platform == 'linux2':
-            # Linux: display with openCV 
+            # Linux: display with openCV
             cv2.imshow("Killcamera", self.frame_mod)
 
         elif sys.platform == 'darwin':
@@ -423,7 +423,7 @@ class Camera():
             subprocess.call('open -a Preview ' + self.opts.processed_img_file,
                             stdout=FNULL, stderr=FNULL, shell=True)
             self.current_image_viewer = 'Preview'
-        
+
         else:
             # Windows: display with Windows Photo Viewer
             viewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
@@ -496,4 +496,3 @@ if __name__ == '__main__':
                 turret.dispose()
                 camera.dispose()
                 break
-            
