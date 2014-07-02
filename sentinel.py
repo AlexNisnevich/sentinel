@@ -66,7 +66,10 @@ class Launcher1130():
                 raise ValueError('Missile launcher not found.')
         if sys.platform == "linux2":
             try:
-                self.dev.detach_kernel_driver(0)
+                if self.dev.is_kernel_driver_active(1) is True:
+                    self.dev.detach_kernel_driver(1)
+                else:
+                    self.dev.detach_kernel_driver(0)
             except Exception, e:
                 pass
 
@@ -144,7 +147,10 @@ class Launcher2123():
             raise ValueError('Missile launcher not found.')
         if sys.platform == "linux2":
             try:
-                self.dev.detach_kernel_driver(0)
+                if self.dev.is_kernel_driver_active(1) is True:
+                    self.dev.detach_kernel_driver(1)
+                else:
+                    self.dev.detach_kernel_driver(0)
             except Exception, e:
                 pass
 
