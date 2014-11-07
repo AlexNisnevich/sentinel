@@ -439,10 +439,11 @@ class Camera():
             self.current_image_viewer = 'Preview'
 
         else:
-            # Windows: display with Windows Photo Viewer
-            viewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
-            self.current_image_viewer = subprocess.Popen('%s %s\%s' % (viewer, os.getcwd(),
-                                                         self.opts.processed_img_file))
+            if not self.current_image_viewer:
+                # Windows: display with Windows Photo Viewer
+                viewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
+                self.current_image_viewer = subprocess.Popen('%s %s\%s' % (viewer, os.getcwd(),
+                                                             self.opts.processed_img_file))
 
 if __name__ == '__main__':
     if (sys.platform == 'linux2' or sys.platform == 'darwin') and not os.geteuid() == 0:
