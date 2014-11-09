@@ -19,8 +19,6 @@
 #   -s WIDTHxHEIGHT, --size=WIDTHxHEIGHT
 #                         image dimensions (recommended: 320x240 or 640x480).
 #                         Default: 320x240
-#   -b SIZE, --buffer=SIZE
-#                         size of camera buffer. Default: 2
 #   -v, --verbose         detailed output, including timing information
 
 import os
@@ -31,6 +29,7 @@ import cv2
 import subprocess
 import shutil
 import math
+import threading
 from optparse import OptionParser
 
 # globals
@@ -75,28 +74,44 @@ class Launcher1130():
 
         self.dev.set_configuration()
 
+        self.missile_capacity = 3
+        self.vert_speed = 0.48
+        self.horiz_speed = 0.64
+
+        #directional constants
+        self.LEFT   =   [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08]
+        self.RIGHT  =   [0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x08]
+        self.UP     =   [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x08]
+        self.DOWN   =   [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x08]
+        self.FIRE   =   [0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x08]
+        self.STOP   =   [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08]
+
     def turretLeft(self):
-        cmd = [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        cmd = self.LEFT + self.cmdFill
         self.turretMove(cmd)
 
     def turretRight(self):
-        cmd = [0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        cmd = self.RIGHT + self.cmdFill
         self.turretMove(cmd)
 
     def turretUp(self):
-        cmd = [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        cmd = self.UP + self.cmdFill
         self.turretMove(cmd)
 
     def turretDown(self):
-        cmd = [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x08] + self.cmdFill
+        cmd = self.DOWN + self.cmdFill
+        self.turretMove(cmd)
+
+    def turretDirection(self, directionCommand):
+        md = directionCommand + self.cmdFill
         self.turretMove(cmd)
 
     def turretFire(self):
-        cmd = [0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x08] + self.cmdFill
+        cmd = self.FIRE + self.cmdFill
         self.turretMove(cmd)
 
     def turretStop(self):
-        cmd = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08] + self.cmdFill
+        cmd = self.STOP + self.cmdFill
         self.turretMove(cmd)
 
     def ledOn(self):
@@ -154,6 +169,18 @@ class Launcher2123():
             except Exception, e:
                 pass
 
+        self.missile_capacity = 4
+        self.vert_speed = 0.48
+        self.horiz_speed = 1.2
+
+        #define directional constants        
+        self.DOWN = 0x01
+        self.UP = 0x02
+        self.LEFT = 0x04
+        self.RIGHT = 0x08
+
+
+
     def turretUp(self):
         self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
@@ -165,6 +192,9 @@ class Launcher2123():
 
     def turretRight(self):
         self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+
+    def turretDirection(self,direction):
+        self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, direction, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
     def turretStop(self):
         self.dev.ctrl_transfer(0x21, 0x09, 0, 0, [0x02, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
@@ -201,10 +231,10 @@ class Turret():
         # Choose correct Launcher
         if opts.launcherID == "1130":
             self.launcher = Launcher1130();
-            self.missiles_remaining = 3
         else:
             self.launcher = Launcher2123();
-            self.missiles_remaining = 4
+
+        self.missiles_remaining = self.launcher.missile_capacity
 
         # initial setup
         self.center()
@@ -223,31 +253,37 @@ class Turret():
 
     # adjusts the turret's position (units are fairly arbitary but work ok)
     def adjust(self, right_dist, down_dist):
-        right_seconds = right_dist * 0.64
-        down_seconds = down_dist * 0.48
+        right_seconds = right_dist * self.launcher.horiz_speed
+        down_seconds = down_dist * self.launcher.vert_speed
 
+        directionRight=0
+        directionDown=0
         if right_seconds > 0:
-            self.launcher.turretRight()
-            time.sleep(right_seconds)
-            self.launcher.turretStop()
+            directionRight = self.launcher.RIGHT
         elif right_seconds < 0:
-            self.launcher.turretLeft()
-            time.sleep(- right_seconds)
-            self.launcher.turretStop()
+            directionRight = self.launcher.LEFT
 
         if down_seconds > 0:
-            self.launcher.turretDown()
-            time.sleep(down_seconds)
-            self.launcher.turretStop()
+            directionDown = self.launcher.DOWN
         elif down_seconds < 0:
-            self.launcher.turretUp()
-            time.sleep(- down_seconds)
-            self.launcher.turretStop()
+            directionDown = self.launcher.UP
+
+        self.launcher.turretDirection(directionDown | directionRight)
+
+        if (abs(right_seconds)>abs(down_seconds)):
+            time.sleep(abs(down_seconds))
+            self.launcher.turretDirection(directionRight)
+            time.sleep(abs(right_seconds-down_seconds))            
+        else:
+            time.sleep(abs(right_seconds))
+            self.launcher.turretDirection(directionDown)
+            time.sleep(abs(down_seconds-right_seconds))          
+        
+        self.launcher.turretStop()
 
         # OpenCV takes pictures VERY quickly, so if we use it (Windows and OS X), we must
         # add an artificial delay to reduce camera wobble and improve clarity
-        if sys.platform == 'win32' or sys.platform == 'darwin':
-            time.sleep(.2)
+        time.sleep(.2)
 
     #stores images of the targets within the killcam folder
     def killcam(self, camera):
@@ -260,15 +296,18 @@ class Turret():
             filename_locked_on = os.path.join("killcam", "lockedon" + str(self.killcam_count) + ".jpg")
 
         # save the image with the target being locked on
-        shutil.copyfile(self.opts.processed_img_file, filename_locked_on)
+
+        cv2.imwrite(filename_locked_on, camera.frame_mod)
 
         # wait a little bit to attempt to catch the target's reaction.
         time.sleep(1)  # tweak this value for most hilarious action shots
+        camera.new_frame_available = False #force camera to obtain image after movement has completed
 
         # take another picture of the target while it is being fired upon
         filename_firing = os.path.join("killcam", "firing" + str(self.killcam_count) + ".jpg")
-        camera.capture()
-        camera.face_detect(filename=filename_firing)
+        camera.face_detect(filename=filename_firing) 
+        if not opts.no_display:
+            camera.display()
 
         self.killcam_count += 1
 
@@ -325,7 +364,22 @@ class Camera():
         self.webcam = cv2.VideoCapture(int(self.opts.camera))  # open a channel to our camera
         if(not self.webcam.isOpened()):  # return error if unable to connect to hardware
             raise ValueError('Error connecting to specified camera')
-        self.clear_buffer()
+
+        #if supported by camera set image width and height to desired values
+        img_w, img_h = map(int, self.opts.image_dimensions.split('x'))
+        self.resolution_set = self.webcam.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH,img_w)
+        self.resolution_set =  self.resolution_set  and self.webcam.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT,img_h)
+
+
+        # initialize classifier with training set of faces
+        self.face_filter = cv2.CascadeClassifier(self.opts.haar_file)
+
+        # create a separate thread to grab frames from camera.  This prevents a frame buffer from filling up with old images
+        self.camThread = threading.Thread(target=self.grab_frames)
+        self.camThread.daemon = True
+        self.currentFrameLock = threading.Lock()
+        self.new_frame_available = False
+        self.camThread.start()
 
     # turn off camera properly
     def dispose(self):
@@ -335,24 +389,22 @@ class Camera():
         else:
             self.webcam.release()
 
-    # grabs several images from buffer to attempt to clear out old images
-    def clear_buffer(self):
-        for _ in range(self.opts.buffer_size):
-            if not self.webcam.retrieve(channel=0):
-                raise ValueError('no more images in buffer, mate')
 
-    # captures a single frame
-    def capture(self):
-            if not self.webcam.grab():
-                raise ValueError('frame grab failed')
-            self.clear_buffer()
+    # runs to grab latest frames from camera
+    def grab_frames(self):
+            while(1): # loop until process is shut down
+                if not self.webcam.grab():
+                    raise ValueError('frame grab failed')
+                time.sleep(.015)
+                retval, most_recent_frame = self.webcam.retrieve(channel=0)
+                if not retval:
+                    raise ValueError('frame capture failed')
+                self.currentFrameLock.acquire()
+                self.current_frame = most_recent_frame
+                self.new_frame_available = True
+                self.currentFrameLock.release()
+                time.sleep(.015)
 
-            retval, most_recent_frame = self.webcam.retrieve(channel=0)
-            if not retval:
-                raise ValueError('frame capture failed')
-            self.current_frame = most_recent_frame
-            # delay of 2 ms for refreshing screen (time.sleep() doesn't work)
-            cv2.waitKey(2)
 
     # runs facial recognition on our previously captured image and returns
     # (x,y)-distance between target and center (as a fraction of image dimensions)
@@ -371,24 +423,27 @@ class Camera():
             else:
                 cv2.rectangle(img, (x, y), (x+w, y+h), color)
 
-        if not filename:
-            filename = self.opts.processed_img_file
-
         # load image, then resize it to specified size
-        img = self.current_frame
+        while(not self.new_frame_available):
+            time.sleep(.001)
+        self.currentFrameLock.acquire()
+        img = self.current_frame.copy()
+        self.new_frame_available = False
+        self.currentFrameLock.release()
 
         img_w, img_h = map(int, self.opts.image_dimensions.split('x'))
-        img = cv2.resize(img, (img_w, img_h))
+        if(not self.resolution_set):
+            img = cv2.resize(img, (img_w, img_h))
 
-        # initialize classifier with training set of faces
-        face_filter = cv2.CascadeClassifier(self.opts.haar_file)
+
+        #convert to grayscale since haar operates on grayscale images anyways
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
         # detect faces (might want to make the minNeighbors threshold adjustable)
-        faces = face_filter.detectMultiScale(img, minNeighbors=4)
+        faces = self.face_filter.detectMultiScale(img, minNeighbors=4)
 
-        # convert to grayscale then back, so that we can draw red targets over a grayscale
+        # convert back from grayscale, so that we can draw red targets over a grayscale
         # photo, for an especially ominous effect
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
         # a bit silly, but works correctly regardless of whether faces is an ndarray or empty tuple
@@ -418,32 +473,21 @@ class Camera():
         else:
             face_detected = False
 
-        cv2.imwrite(filename, img)
 
         #store modified image as class variable so that display() can access it
         self.frame_mod = img
+        if filename:    #save to file if desired
+            cv2.imwrite(filename, img)
 
         return face_detected, x_adj, y_adj, face_y_size
 
     # display the OpenCV-processed images
     def display(self):
+            #not tested on Mac, but the openCV libraries should be fairly cross-platform
+            cv2.imshow("cameraFeed", self.frame_mod)
 
-        if sys.platform == 'linux2':
-            # Linux: display with openCV
-            cv2.imshow("Killcamera", self.frame_mod)
-
-        elif sys.platform == 'darwin':
-            # OS X: display with Preview
-            subprocess.call('open -a Preview ' + self.opts.processed_img_file,
-                            stdout=FNULL, stderr=FNULL, shell=True)
-            self.current_image_viewer = 'Preview'
-
-        else:
-            if not self.current_image_viewer:
-                # Windows: display with Windows Photo Viewer
-                viewer = 'rundll32 "C:\Program Files\Windows Photo Viewer\PhotoViewer.dll" ImageView_Fullscreen'
-                self.current_image_viewer = subprocess.Popen('%s %s\%s' % (viewer, os.getcwd(),
-                                                             self.opts.processed_img_file))
+            # delay of 2 ms for refreshing screen (time.sleep() doesn't work)
+            cv2.waitKey(2)
 
 if __name__ == '__main__':
     if (sys.platform == 'linux2' or sys.platform == 'darwin') and not os.geteuid() == 0:
@@ -465,8 +509,6 @@ if __name__ == '__main__':
     parser.add_option("-s", "--size", dest="image_dimensions", default='320x240',
                       help="image dimensions (recommended: 320x240 or 640x480). Default: 320x240",
                       metavar="WIDTHxHEIGHT")
-    parser.add_option("-b", "--buffer", dest="buffer_size", type="int", default=2,
-                      help="size of camera buffer. Default: 2", metavar="SIZE")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                       help="detailed output, including timing information")
     opts, args = parser.parse_args()
@@ -475,19 +517,17 @@ if __name__ == '__main__':
     # additional options
     opts = AttributeDict(vars(opts))  # converting opts to an AttributeDict so we can add extra options
     opts.haar_file = 'haarcascade_frontalface_default.xml'
-    opts.processed_img_file = 'capture_faces.jpg'
 
     turret = Turret(opts)
     camera = Camera(opts)
 
+
+    while (not camera.new_frame_available):
+        time.sleep(.001)   #wait for first frame to be captured
     if not opts.reset_only:
         while True:
             try:
                 start_time = time.time()
-
-                camera.capture()
-                capture_time = time.time()
-
                 face_detected, x_adj, y_adj, face_y_size = camera.face_detect()
                 detection_time = time.time()
 
@@ -499,13 +539,14 @@ if __name__ == '__main__':
                         print "adjusting turret: x=" + str(x_adj) + ", y=" + str(y_adj)
                     turret.adjust(x_adj, y_adj)
                 movement_time = time.time()
+                camera.new_frame_available = False #force camera to obtain next image after movement has completed
 
                 if opts.verbose:
-                    print "capture time: " + str(capture_time - start_time)
-                    print "detection time: " + str(detection_time - capture_time)
+                    print "total time: " + str(movement_time - start_time)
+                    print "detection time: " + str(detection_time - start_time)
                     print "movement time: " + str(movement_time - detection_time)
 
-                turret.ready_aim_fire(x_adj, y_adj, face_y_size, camera)
+                turret.ready_aim_fire(x_adj, y_adj, face_y_size, camera) 
 
             except KeyboardInterrupt:
                 turret.dispose()
