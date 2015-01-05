@@ -95,7 +95,7 @@ class Launcher1130(Launcher):
     # with bits from https://github.com/codedance/Retaliation
     def __init__(self):
         # HID detach for Linux systems...not tested with 0x1130 product
-
+        self.dev = usb.core.find(idVendor=0x1130, idProduct=0x0202)
         if self.dev is None:
                 raise ValueError('Missile launcher not found.')
         if sys.platform == "linux2":
@@ -118,31 +118,47 @@ class Launcher1130(Launcher):
         self.y_range = 3
 
         #directional constants
-        self.LEFT   =   [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08]
-        self.RIGHT  =   [0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x08]
-        self.UP     =   [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x08]
-        self.DOWN   =   [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x08]
+        self.LEFT   =   1
+        self.RIGHT  =   2
+        self.UP     =   4
+        self.DOWN   =   8
+        
+        self.BLANK_data   =   [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08]
+        self.LEFT_data   =   [0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08]
+        self.RIGHT_data  =   [0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x08, 0x08]
+        self.UP_data     =   [0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x08]
+        self.DOWN_data   =   [0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x08, 0x08]
         self.FIRE   =   [0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x08]
         self.STOP   =   [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x08]
 
     def turretLeft(self):
-        cmd = self.LEFT + self.cmdFill
+        cmd = self.LEFT_data + self.cmdFill
         self.turretMove(cmd)
 
     def turretRight(self):
-        cmd = self.RIGHT + self.cmdFill
+        cmd = self.RIGHT_data + self.cmdFill
         self.turretMove(cmd)
 
     def turretUp(self):
-        cmd = self.UP + self.cmdFill
+        cmd = self.UP_data + self.cmdFill
         self.turretMove(cmd)
 
     def turretDown(self):
-        cmd = self.DOWN + self.cmdFill
+        cmd = self.DOWN_data + self.cmdFill
         self.turretMove(cmd)
 
     def turretDirection(self, directionCommand):
-        md = directionCommand + self.cmdFill
+        cmd = self.BLANK_data + self.cmdFill
+        if (directionCommand & self.LEFT == self.LEFT ):
+                cmd[1] = 0x1
+        elif (directionCommand & self.RIGHT == self.RIGHT ):
+                cmd[2] = 0x1
+
+        if (directionCommand & self.UP == self.UP ):
+                cmd[3] = 0x1
+        elif (directionCommand & self.DOWN == self.DOWN ):
+                cmd[4] = 0x1
+
         self.turretMove(cmd)
 
     def turretFire(self):
